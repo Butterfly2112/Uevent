@@ -5,6 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ErrorFilter } from './common/error.filter';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { CommentsModule } from './comments/comments.module';
+import { CompaniesModule } from './companies/companies.module';
+import { EmailModule } from './email/email.module';
+import { EventsModule } from './events/events.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -26,6 +31,11 @@ import { UsersModule } from './users/users.module';
     }),
     AuthModule,
     UsersModule,
+    CommentsModule,
+    CompaniesModule,
+    EmailModule,
+    EventsModule,
+    TicketsModule,
   ],
   providers: [
     {
