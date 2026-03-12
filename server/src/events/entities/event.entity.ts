@@ -68,7 +68,7 @@ export class Event {
   poster_url: string;
 
   @Column({ nullable: true })
-  redirectUrl: string;
+  redirect_url: string;
 
   @Column()
   start_date: Date;
