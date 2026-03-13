@@ -22,7 +22,7 @@ export class Token {
   @Column()
   token: string;
 
-  @Column()
+  @Column({ nullable: true })
   expires_at: Date;
 
   @ManyToOne(() => User, (user) => user.tokens, {

@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -8,6 +9,12 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
+  @ApiProperty({
+    description:
+      'Login of the user. Can only contain numbers, letters and characters _ and -. Cannot be changed later.',
+    example: 'newUser_2026',
+    uniqueItems: true,
+  })
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-zA-Z0-9_-]+$/, {
@@ -15,6 +22,10 @@ export class RegisterDto {
   })
   login: string;
 
+  @ApiProperty({
+    description: 'Name of the user. Can be changed later.',
+    example: 'Sleeping Beauty',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(50, {
@@ -22,10 +33,18 @@ export class RegisterDto {
   })
   username: string;
 
+  @ApiProperty({
+    description: 'User email.',
+  })
   @IsNotEmpty({ message: 'Email is required' })
   @IsEmail({}, { message: 'Invalid email' })
   email: string;
 
+  @ApiProperty({
+    description:
+      'Password of the user. Must contain at least one uppercase letter, one lowercase letter and one number.',
+    example: 'StrongPassword_123',
+  })
   @IsString()
   @MinLength(8, {
     message:
