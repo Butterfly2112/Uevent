@@ -212,4 +212,8 @@ export class AuthService {
       created_at: user.created_at,
     };
   }
+
+  async logout(token: string): Promise<void> {
+    await this.tokenRepository.delete({ token: token });
+  }
 }

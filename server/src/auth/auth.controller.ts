@@ -171,11 +171,31 @@ export class AuthController {
   @ApiBearerAuth()
   @Get('profile')
   @ApiOperation({
-    summary: 'Get Profile',
+    summary: 'Get Profile (Minimal information for now)',
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)
   async getProfile(@Req() req: RequestWithUser) {
     return req.user;
+  }
+
+  @ApiBearerAuth()
+  @Post('logout')
+  @ApiOperation({
+    summary: 'User logout',
+    description: 'User logout by deleting refresh token',
+  })
+  @UseGuards(AuthGuard)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(req.cookies?.refreshToken);
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    return { message: 'Logged out successfully' };
   }
 }
