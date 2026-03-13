@@ -1,10 +1,21 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -13,13 +24,18 @@ import {
 } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
 import { AuthGuard } from './auth.guard';
-import { User } from 'src/users/entities/user.entity';
-import { UserResponse } from 'src/users/types/userResponse.type';
+import { LoginDto } from './dto/login.dto';
+import { ConfigService } from '@nestjs/config';
+import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
+import { LoginResponseDto } from './dto/loginResponse.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('register')
   @ApiOperation({
@@ -66,6 +82,92 @@ export class AuthController {
     };
   }
 
+  @Post('login')
+  @ApiOperation({
+    summary: 'Login user',
+  })
+  @ApiForbiddenResponse({
+    description:
+      'Email is not validated yet. Please check your email or post request to resend verification letter again.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Wrong password or user with such login/email does not exists',
+  })
+  @ApiOkResponse({
+    description: 'Logged in successfully',
+    type: LoginResponseDto,
+  })
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { access_token, refresh_token, user } =
+      await this.authService.login(loginDto);
+
+    res.cookie('refreshToken', refresh_token, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    return {
+      message: 'Logged in successfully',
+      access_token,
+      user,
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Refresh user authorization',
+    description:
+      "If user's access token has expired, try refreshing it using this request",
+  })
+  @ApiOkResponse({
+    description: 'Successfully refreshed authorization',
+    schema: {
+      type: 'object',
+      properties: {
+        access_token: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1Ni...',
+        },
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Invalid token or Refresh token expired',
+  })
+  @ApiNotFoundResponse({
+    description: 'Refresh token not found in database',
+  })
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new Error('No refresh token provided');
+    }
+
+    const { accessToken, refreshJwtToken } =
+      await this.authService.refresh(refreshToken);
+
+    res.cookie('refreshToken', refreshJwtToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    return {
+      access_token: accessToken,
+    };
+  }
+
   @ApiBearerAuth()
   @Get('profile')
   @ApiOperation({
@@ -73,21 +175,7 @@ export class AuthController {
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)
-  async getProfile() {
-    return 'Profile info';
+  async getProfile(@Req() req: RequestWithUser) {
+    return req.user;
   }
-
-  /*  Поки що не потрібно
-  async safeUserResponse(user: User): Promise<UserResponse> {
-    return {
-      id: user.id,
-      login: user.login,
-      username: user.username,
-      email: user.email,
-      emailValidated: user.is_email_verified,
-      avatar_url: user.avatar_url,
-      role: user.role,
-      created_at: user.created_at,
-    };
-  }*/
 }

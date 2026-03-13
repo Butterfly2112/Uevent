@@ -66,4 +66,10 @@ export class UsersService {
   async confirmEmail(userId: number) {
     await this.usersRepository.update(userId, { is_email_verified: true });
   }
+
+  async findByLoginOrEmail(loginOrEmail: string): Promise<User | null> {
+    return await this.usersRepository.findOne({
+      where: [{ login: loginOrEmail }, { email: loginOrEmail }],
+    });
+  }
 }
