@@ -7,18 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-
-export type NotificationType =
-  | 'event_news'
-  | 'new_event'
-  | 'company_new_user'
-  | 'event_comment'
-  | 'comment_reply'
-  | 'ticket_purchase'
-  | 'event_reminder'
-  | 'payment_success';
-
-export type EmailStatus = 'pending' | 'sent' | 'failed';
+import { EmailStatus, NotificationType } from '../types/notificationsType.type';
 
 @Entity('notifications')
 export class Notification {
@@ -31,16 +20,7 @@ export class Notification {
 
   @Column({
     type: 'enum',
-    enum: [
-      'event_news',
-      'new_event',
-      'company_new_user',
-      'event_comment',
-      'comment_reply',
-      'ticket_purchase',
-      'event_reminder',
-      'payment_success',
-    ],
+    enum: NotificationType,
   })
   type: NotificationType;
 
@@ -56,7 +36,11 @@ export class Notification {
   @Column({ default: false })
   send_email: boolean;
 
-  @Column({ type: 'enum', enum: ['pending', 'sent', 'failed'], nullable: true })
+  @Column({
+    type: 'enum',
+    enum: EmailStatus,
+    nullable: true,
+  })
   email_status: EmailStatus | null;
 
   @Column({ default: 0 })

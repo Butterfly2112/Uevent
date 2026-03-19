@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   Notification,
-  NotificationType,
 } from './entities/notifications.entity';
+import { NotificationType, EmailStatus } from './types/notificationsType.type';
 import { User } from 'src/users/entities/user.entity';
 import { NotificationResponse } from './types/notificationsResponse.type';
 import * as nodemailer from 'nodemailer';
@@ -30,7 +30,7 @@ export class NotificationsService {
       title: data.title,
       message: data.message,
       send_email: data.send_email ?? false,
-      email_status: data.send_email ? 'pending' : null,
+      email_status: data.send_email ? EmailStatus.PENDING : null,
     });
 
     const saved = await this.notificationRepo.save(notification);
@@ -63,9 +63,9 @@ export class NotificationsService {
         subject: notification.title,
         text: notification.message,
       });
-      notification.email_status = 'sent';
+      notification.email_status = EmailStatus.SENT;
     } catch (err) {
-      notification.email_status = 'failed';
+      notification.email_status = EmailStatus.FAILED;
       console.error('Failed to send email:', err);
     } finally {
       notification.sent_at = new Date();

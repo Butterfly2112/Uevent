@@ -1,19 +1,13 @@
+import { EmailStatus, NotificationType } from './notificationsType.type';
+
 export interface NotificationResponse {
   id: number;
-  type:
-    | 'event_news'
-    | 'new_event'
-    | 'company_new_user'
-    | 'event_comment'
-    | 'comment_reply'
-    | 'ticket_purchase'
-    | 'event_reminder'
-    | 'payment_success';
+  type: NotificationType;
   title: string;
   message: string;
   is_read: boolean;
   send_email: boolean;
-  email_status: 'pending' | 'sent' | 'failed' | null;
+  email_status: EmailStatus | null;
   attempts: number;
   sent_at: Date | null;
   created_at: Date;
