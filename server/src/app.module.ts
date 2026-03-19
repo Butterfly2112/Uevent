@@ -10,6 +10,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { EmailModule } from './email/email.module';
 import { EventsModule } from './events/events.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { TicketsModule } from './tickets/tickets.module';
     EmailModule,
     EventsModule,
     TicketsModule,
+    NotificationsModule,
   ],
   providers: [
     {

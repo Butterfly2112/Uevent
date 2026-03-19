@@ -14,6 +14,7 @@ import { Event } from 'src/events/entities/event.entity';
 import { Ticket } from 'src/tickets/entities/ticket.entity';
 import { Company } from 'src/companies/entities/company.entity';
 import { Comment } from 'src/comments/entities/comment.entity';
+import { Notification } from 'src/notifications/entities/notifications.entity';
 
 @Entity('users')
 export class User {
@@ -61,6 +62,9 @@ export class User {
 
   @OneToMany(() => Comment, (comment) => comment.author)
   comments: Comment[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 
   @ManyToMany(() => User, (user) => user.followers)
   @JoinTable({
