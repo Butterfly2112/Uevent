@@ -7,7 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { EmailStatus, NotificationType } from '../types/notificationsType.type';
+import { EmailStatus, NotificationType } from '../types/notifications-type.enum';
 
 @Entity('notifications')
 export class Notification {

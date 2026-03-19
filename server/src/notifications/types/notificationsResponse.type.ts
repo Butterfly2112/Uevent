@@ -1,4 +1,4 @@
-import { EmailStatus, NotificationType } from './notificationsType.type';
+import { EmailStatus, NotificationType } from './notifications-type.enum';
 
 export interface NotificationResponse {
   id: number;

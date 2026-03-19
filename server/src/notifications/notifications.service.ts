@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import {
   Notification,
 } from './entities/notifications.entity';
-import { NotificationType, EmailStatus } from './types/notificationsType.type';
+import { NotificationType, EmailStatus } from './types/notifications-type.enum';
 import { User } from 'src/users/entities/user.entity';
 import { NotificationResponse } from './types/notificationsResponse.type';
 import * as nodemailer from 'nodemailer';
