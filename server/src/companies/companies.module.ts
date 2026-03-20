@@ -4,9 +4,10 @@ import { Company } from './entities/company.entity';
 import { CompanyNews } from './entities/company-news.entity';
 import { CompanyService } from './companies.service';
 import { CompanyController } from './companies.controller';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Company, CompanyNews])],
+  imports: [AuthModule, TypeOrmModule.forFeature([Company, CompanyNews])],
   providers: [CompanyService],
   controllers: [CompanyController],
 })

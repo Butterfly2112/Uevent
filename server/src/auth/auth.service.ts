@@ -18,6 +18,7 @@ import { AuthResponse } from './types/authResponse.type';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/entities/user.entity';
 import { UserResponse } from 'src/users/types/userResponse.type';
+import { JwtType } from './types/jwtType.type';
 
 @Injectable()
 export class AuthService {
@@ -215,5 +216,18 @@ export class AuthService {
 
   async logout(token: string): Promise<void> {
     await this.tokenRepository.delete({ token: token });
+  }
+
+  async getUserFromToken(authHeader: string): Promise<JwtType | null> {
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+      const user: JwtType = payload;
+      return user;
+    } catch (e) {
+      return null;
+    }
   }
 }
