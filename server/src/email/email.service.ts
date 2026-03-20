@@ -36,4 +36,29 @@ export class EmailService {
 
     console.log('Message send: ', info.messageId);
   }
+
+  async sendReminder(
+    username: string,
+    email: string,
+    eventTitle: string,
+    eventDate: Date,
+  ): Promise<void> {
+    const formattedDate = eventDate.toLocaleString();
+
+    const info = await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: `Reminder: ${eventTitle} is coming soon`,
+      text: `Hi ${username},\n\nReminder that "${eventTitle}" will take place on ${formattedDate}.`,
+      html: `
+      <h2>Hello, ${username}</h2>
+      <p>This is a reminder that your event is coming soon:</p>
+      <h3>${eventTitle}</h3>
+      <p><strong>Date:</strong> ${formattedDate}</p>
+      <p>Don't miss it</p>
+    `,
+    });
+
+    console.log('Reminder email sent: ', info.messageId);
+  }
 }

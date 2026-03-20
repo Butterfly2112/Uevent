@@ -1,31 +1,40 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  Notification,
-} from './entities/notifications.entity';
+import { Notification } from './entities/notifications.entity';
 import { NotificationType, EmailStatus } from './types/notifications-type.enum';
 import { User } from 'src/users/entities/user.entity';
 import { NotificationResponse } from './types/notificationsResponse.type';
-import * as nodemailer from 'nodemailer';
+import { EmailService } from 'src/email/email.service';
+import { Event } from 'src/events/entities/event.entity';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepo: Repository<Notification>,
+    private emailService: EmailService,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
   ) {}
 
   // Створення сповіщення
   async createNotification(data: {
     user: User;
+    event?: Event;
     type: NotificationType;
     title: string;
     message: string;
     send_email?: boolean;
   }): Promise<Notification> {
+    const user = await this.userRepo.findOne({
+      where: { id: data.user.id },
+    });
+
+    if (!user) throw new Error('User not found');
+
     const notification = this.notificationRepo.create({
-      user: data.user,
+      user,
       type: data.type,
       title: data.title,
       message: data.message,
@@ -35,43 +44,31 @@ export class NotificationsService {
 
     const saved = await this.notificationRepo.save(notification);
 
-    // Надсилання листа на email
     if (saved.send_email) {
-      this.sendEmail(saved).catch(console.error);
+      if (data.event) {
+        await this.emailService.sendReminder(
+          saved.user.login,
+          saved.user.email,
+          saved.title,
+          data.event.start_date,
+        );
+        saved.email_status = EmailStatus.SENT;
+      } else {
+        await this.emailService.sendReminder(
+          saved.user.login,
+          saved.user.email,
+          saved.title,
+          new Date(),
+        );
+        saved.email_status = EmailStatus.SENT;
+      }
+
+      saved.sent_at = new Date();
+      saved.attempts += 1;
+      await this.notificationRepo.save(saved);
     }
 
     return saved;
-  }
-
-  // Відправка листа
-  private async sendEmail(notification: Notification) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.HOST_FOR_EMAIL,
-        port: Number(process.env.PORT_FOR_EMAIL),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-
-      // Надсилаємо лист
-      await transporter.sendMail({
-        from: `"MyApp" <${process.env.SMTP_USER}>`,
-        to: notification.user.email,
-        subject: notification.title,
-        text: notification.message,
-      });
-      notification.email_status = EmailStatus.SENT;
-    } catch (err) {
-      notification.email_status = EmailStatus.FAILED;
-      console.error('Failed to send email:', err);
-    } finally {
-      notification.sent_at = new Date();
-      notification.attempts += 1;
-      await this.notificationRepo.save(notification);
-    }
   }
 
   // Отримати всі сповіщення користувача

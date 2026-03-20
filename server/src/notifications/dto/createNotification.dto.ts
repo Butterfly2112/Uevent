@@ -15,23 +15,23 @@ import {
 export class CreateNotificationDto {
   @ApiProperty({
     example: 1,
-    description: 'User ID to which the notification belongs',
+    description: 'Jeffrey Epstein',
   })
   @IsInt()
   @IsNotEmpty()
   userId: number;
 
-  @ApiProperty({ enum: Object.values(NotificationType), example: 'event_news' })
+  @ApiProperty({ enum: Object.values(NotificationType), example: 'new_event' })
   @IsEnum(NotificationType)
   type: NotificationType;
 
-  @ApiProperty({ example: 'New entrance', description: 'Notification title' })
+  @ApiProperty({ example: 'New entrance', description: 'Party on the island' })
   @IsString()
   @IsNotEmpty()
   title: string;
 
   @ApiProperty({
-    example: 'You are logged in from a new device.',
+    example: 'Take Stephen Hawking with you.',
     description: 'Message text',
   })
   @IsString()
