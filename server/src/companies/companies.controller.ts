@@ -1,4 +1,13 @@
-import { Controller, Param, Get, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Param,
+  Get,
+  Headers,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import {
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -11,6 +20,9 @@ import { CompanyService } from './companies.service';
 import { SafeCompanyResponseDto } from './dto/safeCompanyResponse.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtType } from 'src/auth/types/jwtType.type';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
+import { RegisterCompanyDto } from './dto/registerCompany.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -20,8 +32,17 @@ export class CompanyController {
     private authService: AuthService,
   ) {}
 
+  @Post('register')
+  @UseGuards(AuthGuard)
+  async registerCompany(
+    @Req() req: RequestWithUser,
+    @Body() registerDto: RegisterCompanyDto,
+  ) {
+    return await this.companyService.registerCompany(registerDto, req.user.id);
+  }
+
   @ApiOperation({
-    summary: 'Get company registrated on user',
+    summary: 'Get company details',
     description:
       'If user is logged in and is owner of this company - events of all status will be returned alongside company information.' +
       'If user is not logged in or does not own this company, then all events of status draft will be automatically hidden',
@@ -31,17 +52,16 @@ export class CompanyController {
     type: SafeCompanyResponseDto,
   })
   @ApiNotFoundResponse({
-    description:
-      'User does not have company registrated or user with such id do not exists',
+    description: 'Company is not found',
   })
   @ApiParam({
     name: 'id',
-    description: 'User id',
+    description: 'Company id',
     type: Number,
     example: 1,
   })
-  @Get('user/:id')
-  async getUserCompany(
+  @Get(':id')
+  async getCompany(
     @Param('id') param: number,
     @Headers('authorization') authHeader?: string,
   ) {
@@ -49,7 +69,7 @@ export class CompanyController {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       user = await this.authService.getUserFromToken(authHeader);
     }
-    return await this.companyService.getUserCompany(
+    return await this.companyService.getCompanyById(
       param,
       user ? user.id : null,
     );

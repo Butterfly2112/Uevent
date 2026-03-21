@@ -5,9 +5,16 @@ import { CompanyNews } from './entities/company-news.entity';
 import { CompanyService } from './companies.service';
 import { CompanyController } from './companies.controller';
 import { AuthModule } from 'src/auth/auth.module';
+import { UsersModule } from 'src/users/users.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [AuthModule, TypeOrmModule.forFeature([Company, CompanyNews])],
+  imports: [
+    AuthModule,
+    UsersModule,
+    JwtModule.register({}),
+    TypeOrmModule.forFeature([Company, CompanyNews]),
+  ],
   providers: [CompanyService],
   controllers: [CompanyController],
 })

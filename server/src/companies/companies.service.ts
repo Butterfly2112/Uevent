@@ -1,27 +1,55 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Company } from './entities/company.entity';
 import { Repository } from 'typeorm';
 import { CompanyNews } from './entities/company-news.entity';
 import { SafeCompanyResponseDto } from './dto/safeCompanyResponse.dto';
-import { title } from 'process';
 import { EventStatus } from 'src/events/entities/event.entity';
+import { RegisterCompanyDto } from './dto/registerCompany.dto';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class CompanyService {
   constructor(
+    private usersService: UsersService,
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     @InjectRepository(CompanyNews)
     private companyNewsRepository: Repository<CompanyNews>,
   ) {}
 
-  async getUserCompany(
+  async registerCompany(
+    registerDto: RegisterCompanyDto,
     userId: number,
+  ): Promise<SafeCompanyResponseDto> {
+    const user = await this.usersService.getUserById(userId);
+
+    if (await this.usersService.userHasCompany(user.id)) {
+      throw new ConflictException('User already has company');
+    }
+
+    const company = await this.companyRepository.save({
+      owner: user,
+      name: registerDto.name,
+      email_for_info: registerDto.email_for_info,
+      location: registerDto.location,
+      description: registerDto.description,
+      picture_url: registerDto.picture_url,
+    });
+
+    return this.mapCompanyProfileToDTO(company);
+  }
+
+  async getCompanyById(
+    compahyId: number,
     currentUserId: number | null,
   ): Promise<SafeCompanyResponseDto> {
     const info = await this.companyRepository.findOne({
-      where: { owner: { id: userId } },
+      where: { id: compahyId },
       select: {
         owner: {
           id: true,
@@ -35,7 +63,7 @@ export class CompanyService {
     });
 
     if (!info) {
-      throw new NotFoundException('User have not registered company.');
+      throw new NotFoundException('Company not found.');
     }
 
     return this.mapCompanyProfileToDTO(
@@ -68,27 +96,31 @@ export class CompanyService {
       location: dbCompany.location,
       description: dbCompany.description,
       picture_url: dbCompany.picture_url,
-      events: visibleEvents.map((event) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        price: event.price,
-        ticket_limit: event.ticket_limit,
-        address: event.address,
-        poster_url: event.poster_url,
-        start_date: event.start_date,
-        end_date: event.end_date,
-        status: event.status,
-        format: event.format,
-        theme: event.theme,
-      })),
-      news: dbCompany.news.map((news) => ({
-        id: news.id,
-        title: news.title,
-        content: news.content,
-        images_url: news.images_url,
-        created_at: news.created_at,
-      })),
+      events: visibleEvents
+        ? visibleEvents.map((event) => ({
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            price: event.price,
+            ticket_limit: event.ticket_limit,
+            address: event.address,
+            poster_url: event.poster_url,
+            start_date: event.start_date,
+            end_date: event.end_date,
+            status: event.status,
+            format: event.format,
+            theme: event.theme,
+          }))
+        : [],
+      news: dbCompany.news
+        ? dbCompany.news.map((news) => ({
+            id: news.id,
+            title: news.title,
+            content: news.content,
+            images_url: news.images_url,
+            created_at: news.created_at,
+          }))
+        : [],
     };
   }
 }

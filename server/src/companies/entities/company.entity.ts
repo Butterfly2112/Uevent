@@ -25,7 +25,7 @@ export class Company {
   @Column()
   email_for_info: string;
 
-  @Column()
+  @Column({ default: 'not given' })
   location: string;
 
   @Column()
