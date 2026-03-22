@@ -171,7 +171,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Get('profile')
   @ApiOperation({
-    summary: 'Get Profile (Minimal information for now)',
+    summary: 'Get Profile (Minimal information)',
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)

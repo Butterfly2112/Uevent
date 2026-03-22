@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/entities/user.entity';
 import { UserResponse } from 'src/users/types/userResponse.type';
 import { JwtType } from './types/jwtType.type';
+import { toUserResponse } from 'src/common/mappers/user.mapper';
 
 @Injectable()
 export class AuthService {
@@ -90,7 +91,7 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: refreshJwtToken,
-      user: await this.safeUserResponse(user),
+      user: toUserResponse(user),
     };
   }
 
@@ -199,19 +200,6 @@ export class AuthService {
     } catch (error) {
       throw new ConflictException(`Invalid refresh token: ${error.message}`);
     }
-  }
-
-  async safeUserResponse(user: User): Promise<UserResponse> {
-    return {
-      id: user.id,
-      login: user.login,
-      username: user.username,
-      email: user.email,
-      emailValidated: user.is_email_verified,
-      avatar_url: user.avatar_url,
-      role: user.role,
-      created_at: user.created_at,
-    };
   }
 
   async logout(token: string): Promise<void> {

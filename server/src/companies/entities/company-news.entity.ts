@@ -13,7 +13,7 @@ export class CompanyNews {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Company, (company) => company.news)
+  @ManyToOne(() => Company, (company) => company.news, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 

@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import { UserDetailedInfo } from './types/userDetailedInfo.type';
+import { toUserDetailedInfo } from 'src/common/mappers/user.mapper';
 
 @Injectable()
 export class UsersService {
@@ -83,6 +85,56 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  /**
+   * Returns detailed user information. Information returned depends on the permissions that are being assigned depending on the permissions (guest/user/owner/admin)
+   * @param userId User id of which you are searching
+   * @param currentUserId Current user id who is searching
+   * @returns detailed user info
+   */
+  async getUserByIdDetailed(
+    userId: number,
+    currentUserId: number | null,
+  ): Promise<UserDetailedInfo> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: {
+        company: {
+          owner: true,
+          events: true,
+          news: true,
+        },
+        notifications: true,
+        followers: true,
+        following: true,
+        hosted_events: true,
+        tickets: {
+          event: true,
+          promo_code: true,
+          user: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let owner = false;
+    let admin = false;
+
+    if (currentUserId) {
+      const currentUser = await this.usersRepository.findOne({
+        where: { id: currentUserId },
+        select: ['id', 'role'],
+      });
+      if (currentUser) {
+        owner = user.id === currentUser.id;
+        admin = currentUser.role === 'admin';
+      }
+    }
+    return toUserDetailedInfo(user, { owner, admin });
   }
 
   async userHasCompany(userId: number): Promise<boolean> {

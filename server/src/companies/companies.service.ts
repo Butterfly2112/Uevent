@@ -7,10 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Company } from './entities/company.entity';
 import { Repository } from 'typeorm';
 import { CompanyNews } from './entities/company-news.entity';
-import { SafeCompanyResponseDto } from './dto/safeCompanyResponse.dto';
-import { EventStatus } from 'src/events/entities/event.entity';
+import { SafeCompanyResponse } from './types/safeCompanyResponse.type';
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
 import { UsersService } from 'src/users/users.service';
+import { mapCompanyProfileToDTO } from 'src/common/mappers/company.mapper';
 
 @Injectable()
 export class CompanyService {
@@ -25,10 +25,10 @@ export class CompanyService {
   async registerCompany(
     registerDto: RegisterCompanyDto,
     userId: number,
-  ): Promise<SafeCompanyResponseDto> {
+  ): Promise<SafeCompanyResponse> {
     const user = await this.usersService.getUserById(userId);
 
-    if (await this.usersService.userHasCompany(user.id)) {
+    if (user.company) {
       throw new ConflictException('User already has company');
     }
 
@@ -41,13 +41,19 @@ export class CompanyService {
       picture_url: registerDto.picture_url,
     });
 
-    return this.mapCompanyProfileToDTO(company);
+    return mapCompanyProfileToDTO(company);
   }
 
+  /**
+   * Returns information about company. Information returned depends on the permissions that are being assigned depending on the permissions (guest/user/owner/admin)
+   * @param compahyId Company id
+   * @param currentUserId Current user id who is searching
+   * @returns company info
+   */
   async getCompanyById(
     compahyId: number,
     currentUserId: number | null,
-  ): Promise<SafeCompanyResponseDto> {
+  ): Promise<SafeCompanyResponse> {
     const info = await this.companyRepository.findOne({
       where: { id: compahyId },
       select: {
@@ -66,61 +72,6 @@ export class CompanyService {
       throw new NotFoundException('Company not found.');
     }
 
-    return this.mapCompanyProfileToDTO(
-      info,
-      currentUserId ? currentUserId : null,
-    );
-  }
-
-  async mapCompanyProfileToDTO(
-    dbCompany: Company,
-    currentUserId?: number | null,
-  ): Promise<SafeCompanyResponseDto> {
-    let visibleEvents = dbCompany.events || [];
-    if (!currentUserId || currentUserId != dbCompany.owner.id) {
-      visibleEvents = visibleEvents.filter(
-        (event) => event.status !== EventStatus.DRAFT,
-      );
-    }
-
-    return {
-      id: dbCompany.id,
-      owner: {
-        id: dbCompany.owner.id,
-        login: dbCompany.owner.login,
-        username: dbCompany.owner.username,
-        avatar_url: dbCompany.owner.avatar_url,
-      },
-      name: dbCompany.name,
-      email_for_info: dbCompany.email_for_info,
-      location: dbCompany.location,
-      description: dbCompany.description,
-      picture_url: dbCompany.picture_url,
-      events: visibleEvents
-        ? visibleEvents.map((event) => ({
-            id: event.id,
-            title: event.title,
-            description: event.description,
-            price: event.price,
-            ticket_limit: event.ticket_limit,
-            address: event.address,
-            poster_url: event.poster_url,
-            start_date: event.start_date,
-            end_date: event.end_date,
-            status: event.status,
-            format: event.format,
-            theme: event.theme,
-          }))
-        : [],
-      news: dbCompany.news
-        ? dbCompany.news.map((news) => ({
-            id: news.id,
-            title: news.title,
-            content: news.content,
-            images_url: news.images_url,
-            created_at: news.created_at,
-          }))
-        : [],
-    };
+    return mapCompanyProfileToDTO(info, currentUserId ? currentUserId : null);
   }
 }

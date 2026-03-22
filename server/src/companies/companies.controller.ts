@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CompanyService } from './companies.service';
-import { SafeCompanyResponseDto } from './dto/safeCompanyResponse.dto';
+import { SafeCompanyResponse } from './types/safeCompanyResponse.type';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -49,7 +49,7 @@ export class CompanyController {
   })
   @ApiOkResponse({
     description: 'Successfully retrieved company info',
-    type: SafeCompanyResponseDto,
+    type: SafeCompanyResponse,
   })
   @ApiNotFoundResponse({
     description: 'Company is not found',

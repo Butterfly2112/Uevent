@@ -38,7 +38,9 @@ export class Event {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Company, (company) => company.events)
+  @ManyToOne(() => Company, (company) => company.events, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
