@@ -7,11 +7,13 @@ import { CompanyController } from './companies.controller';
 import { AuthModule } from 'src/auth/auth.module';
 import { UsersModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
+import { UploadModule } from 'src/upload/upload.module';
 
 @Module({
   imports: [
     AuthModule,
     UsersModule,
+    UploadModule,
     JwtModule.register({}),
     TypeOrmModule.forFeature([Company, CompanyNews]),
   ],

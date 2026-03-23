@@ -23,7 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from '../common/auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';

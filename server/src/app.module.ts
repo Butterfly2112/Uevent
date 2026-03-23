@@ -11,6 +11,7 @@ import { EmailModule } from './email/email.module';
 import { EventsModule } from './events/events.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     EventsModule,
     TicketsModule,
     NotificationsModule,
+    UploadModule,
   ],
   providers: [
     {

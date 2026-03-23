@@ -7,8 +7,13 @@ import {
   Body,
   UseGuards,
   Req,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -20,9 +25,11 @@ import { CompanyService } from './companies.service';
 import { SafeCompanyResponse } from './types/safeCompanyResponse.type';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtType } from 'src/auth/types/jwtType.type';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/common/auth.guard';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
+import { CompanyPictureUploadInterceptor } from 'src/upload/upload.interceptor';
+import { UploadService } from 'src/upload/upload.service';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -30,15 +37,40 @@ export class CompanyController {
   constructor(
     private companyService: CompanyService,
     private authService: AuthService,
+    private uploadsService: UploadService,
   ) {}
 
   @Post('register')
+  @ApiBearerAuth()
   @UseGuards(AuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Doofenshmirtz Evil Incorporated' },
+        email_for_info: { type: 'string', example: 'corp@example.com' },
+        location: { type: 'string', example: '13, Willow Street' },
+        description: { type: 'string', example: 'Evil corporation' },
+        picture: { type: 'string', format: 'binary' },
+      },
+      required: ['name', 'email_for_info', 'description'],
+    },
+  })
+  @UseInterceptors(CompanyPictureUploadInterceptor)
   async registerCompany(
     @Req() req: RequestWithUser,
     @Body() registerDto: RegisterCompanyDto,
+    @UploadedFile() picture?: Express.Multer.File,
   ) {
-    return await this.companyService.registerCompany(registerDto, req.user.id);
+    const picture_url = picture
+      ? this.uploadsService.getFileUrl('company-pictures', picture.filename)
+      : undefined;
+
+    return await this.companyService.registerCompany(
+      { ...registerDto, picture_url },
+      req.user.id,
+    );
   }
 
   @ApiOperation({

@@ -26,11 +26,12 @@ export class CompanyService {
     registerDto: RegisterCompanyDto,
     userId: number,
   ): Promise<SafeCompanyResponse> {
-    const user = await this.usersService.getUserById(userId);
-
-    if (user.company) {
+    const hasCompany = await this.usersService.userHasCompany(userId);
+    if (hasCompany) {
       throw new ConflictException('User already has company');
     }
+
+    const user = await this.usersService.getUserById(userId);
 
     const company = await this.companyRepository.save({
       owner: user,
