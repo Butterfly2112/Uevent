@@ -1,50 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsBoolean,
-} from 'class-validator';
-import {
-  NotificationType,
-  EmailStatus,
-} from '../types/notifications-type.enum';
+import { IsEnum, IsInt, IsOptional } from 'class-validator';
+import { NotificationType } from '../types/notifications-type.enum';
 
 export class CreateNotificationDto {
   @ApiProperty({
     example: 1,
-    description: 'Jeffrey Epstein',
+    description: 'User ID',
   })
   @IsInt()
-  @IsNotEmpty()
   userId: number;
 
-  @ApiProperty({ enum: Object.values(NotificationType), example: 'new_event' })
+  @ApiProperty({
+    enum: Object.values(NotificationType),
+    example: 'event_reminder',
+  })
   @IsEnum(NotificationType)
   type: NotificationType;
 
-  @ApiProperty({ example: 'New entrance', description: 'Party on the island' })
-  @IsString()
-  @IsNotEmpty()
-  title: string;
-
-  @ApiProperty({
-    example: 'Take Stephen Hawking with you.',
-    description: 'Message text',
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Event ID (optional)',
   })
-  @IsString()
-  @IsNotEmpty()
-  message: string;
-
-  @ApiPropertyOptional({ default: false })
-  @IsBoolean()
+  @IsInt()
   @IsOptional()
-  send_email?: boolean;
-
-  @ApiPropertyOptional({ enum: Object.values(EmailStatus), nullable: true })
-  @IsEnum(EmailStatus)
-  @IsOptional()
-  email_status?: EmailStatus;
+  eventId?: number;
 }

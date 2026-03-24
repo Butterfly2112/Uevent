@@ -45,9 +45,10 @@ export class EmailService {
     username: string,
     email: string,
     eventTitle: string,
-    eventDate: Date,
+    eventDate?: Date,
   ): Promise<void> {
-    const formattedDate = eventDate.toLocaleString();
+    const dateToUse = eventDate ?? new Date();
+    const formattedDate = dateToUse.toLocaleString();
 
     const info = await this.transporter.sendMail({
       from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
@@ -59,10 +60,28 @@ export class EmailService {
       <p>This is a reminder that your event is coming soon:</p>
       <h3>${eventTitle}</h3>
       <p><strong>Date:</strong> ${formattedDate}</p>
-      <p>Don't miss it</p>
+      <p>Don't miss it!</p>
     `,
     });
 
     console.log('Reminder email sent: ', info.messageId);
+  }
+
+  async sendTicketPurchase(username: string, email: string) {
+    await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Ticket purchased',
+      html: `<h2>Hello ${username}</h2><p>You bought a ticket</p>`,
+    });
+  }
+
+  async sendPaymentSuccess(username: string, email: string) {
+    await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Payment successful',
+      html: `<h2>Hello ${username}</h2><p>Your payment was successful</p>`,
+    });
   }
 }

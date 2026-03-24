@@ -16,59 +16,138 @@ export class NotificationsService {
     private emailService: EmailService,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    @InjectRepository(Event)
+    private eventRepo: Repository<Event>,
   ) {}
 
-  // Створення сповіщення
+  private notificationConfig = {
+    [NotificationType.EVENT_NEWS]: { email: false },
+    [NotificationType.NEW_EVENT]: { email: false },
+    [NotificationType.COMPANY_NEW_USER]: { email: false },
+    [NotificationType.EVENT_COMMENT]: { email: false },
+    [NotificationType.COMMENT_REPLY]: { email: false },
+
+    [NotificationType.TICKET_PURCHASE]: { email: true },
+    [NotificationType.EVENT_REMINDER]: { email: true },
+    [NotificationType.PAYMENT_SUCCESS]: { email: true },
+  };
+
+  // Створити сповіщення
   async createNotification(data: {
     user: User;
-    event?: Event;
     type: NotificationType;
-    title: string;
-    message: string;
-    send_email?: boolean;
+    event?: Event;
   }): Promise<Notification> {
-    const user = await this.userRepo.findOne({
-      where: { id: data.user.id },
-    });
+    const content = this.buildNotificationContent(data);
 
-    if (!user) throw new Error('User not found');
+    const sendEmail = [
+      NotificationType.TICKET_PURCHASE,
+      NotificationType.EVENT_REMINDER,
+      NotificationType.PAYMENT_SUCCESS,
+    ].includes(data.type);
 
     const notification = this.notificationRepo.create({
-      user,
+      user: data.user,
       type: data.type,
-      title: data.title,
-      message: data.message,
-      send_email: data.send_email ?? false,
-      email_status: data.send_email ? EmailStatus.PENDING : null,
+      title: content.title,
+      message: content.message,
+      send_email: sendEmail,
+      email_status: sendEmail ? EmailStatus.PENDING : null,
     });
 
     const saved = await this.notificationRepo.save(notification);
 
-    if (saved.send_email) {
-      if (data.event) {
-        await this.emailService.sendReminder(
-          saved.user.login,
-          saved.user.email,
-          saved.title,
-          data.event.start_date,
-        );
-        saved.email_status = EmailStatus.SENT;
-      } else {
-        await this.emailService.sendReminder(
-          saved.user.login,
-          saved.user.email,
-          saved.title,
-          new Date(),
-        );
-        saved.email_status = EmailStatus.SENT;
-      }
-
-      saved.sent_at = new Date();
-      saved.attempts += 1;
-      await this.notificationRepo.save(saved);
+    if (sendEmail) {
+      await this.handleEmail(saved, data.event);
     }
 
     return saved;
+  }
+
+  private buildNotificationContent(data: {
+    type: NotificationType;
+    event?: Event;
+  }) {
+    switch (data.type) {
+      case NotificationType.TICKET_PURCHASE:
+        return {
+          title: 'Ticket purchased',
+          message: 'You have successfully purchased a ticket',
+        };
+
+      case NotificationType.EVENT_REMINDER:
+        return {
+          title: 'Event reminder',
+          message: `Event "${data.event?.title}" is coming soon`,
+        };
+
+      case NotificationType.PAYMENT_SUCCESS:
+        return {
+          title: 'Payment successful',
+          message: 'Your payment was successful',
+        };
+
+      case NotificationType.EVENT_COMMENT:
+        return {
+          title: 'New comment',
+          message: 'Someone commented on your event',
+        };
+
+      case NotificationType.COMMENT_REPLY:
+        return {
+          title: 'Reply to your comment',
+          message: 'Someone replied to your comment',
+        };
+
+      default:
+        return {
+          title: 'Notification',
+          message: 'You have a new notification',
+        };
+    }
+  }
+
+  private async handleEmail(notification: Notification, event?: Event) {
+    try {
+      const type = notification.type as
+        | NotificationType.TICKET_PURCHASE
+        | NotificationType.EVENT_REMINDER
+        | NotificationType.PAYMENT_SUCCESS;
+
+      switch (type) {
+        case NotificationType.EVENT_REMINDER:
+          await this.emailService.sendReminder(
+            notification.user.login,
+            notification.user.email,
+            notification.title,
+            event?.start_date,
+          );
+          break;
+
+        case NotificationType.TICKET_PURCHASE:
+          await this.emailService.sendTicketPurchase(
+            notification.user.login,
+            notification.user.email,
+          );
+          break;
+
+        case NotificationType.PAYMENT_SUCCESS:
+          await this.emailService.sendPaymentSuccess(
+            notification.user.login,
+            notification.user.email,
+          );
+          break;
+      }
+
+      notification.email_status = EmailStatus.SENT;
+    } catch (err) {
+      notification.email_status = EmailStatus.FAILED;
+      console.error(err);
+    } finally {
+      notification.sent_at = new Date();
+      notification.attempts += 1;
+      await this.notificationRepo.save(notification);
+    }
   }
 
   // Отримати всі сповіщення користувача
@@ -76,7 +155,7 @@ export class NotificationsService {
     const notifications = await this.notificationRepo.find({
       where: { user: { id: userId } },
       relations: ['user'],
-      order: { created_at: 'DESC' },
+      order: { created_at: 'DESC' } as const,
     });
 
     return notifications.map((n) => this.toResponse(n));
@@ -95,7 +174,9 @@ export class NotificationsService {
 
   // Позначити як прочитане
   async markAsRead(notificationId: number): Promise<void> {
-    await this.notificationRepo.update(notificationId, { is_read: true });
+    await this.notificationRepo.update(notificationId, {
+      is_read: true,
+    } as any);
   }
 
   // Видалити сповіщення
@@ -116,5 +197,10 @@ export class NotificationsService {
       sent_at: notification.sent_at ?? null,
       created_at: notification.created_at,
     };
+  }
+  async getEventById(id: number): Promise<Event> {
+    const event = await this.eventRepo.findOne({ where: { id } });
+    if (!event) throw new Error('Event not found');
+    return event;
   }
 }
