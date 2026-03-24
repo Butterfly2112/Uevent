@@ -11,14 +11,12 @@ const Home: React.FC = () => {
   return (
     <div className="home-root">
       <header className="home-header">
-        <div className="logo-block">
-              <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>
-                Uevent
-              </span>
-              <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
-                <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
-              </span>
-        </div>
+        <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
+          <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
+          <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
+            <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
+          </span>
+        </a>
         <input className="search-input" type="text" placeholder="Search events" />
         <button className="search-btn">
           <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
@@ -66,11 +64,10 @@ const Home: React.FC = () => {
 
       <footer className="home-footer">
         <div className="footer-row">
-          <a href="#">All event types</a>
-          <a href="#">Cookie policy</a>
-          <a href="#">FAQs</a>
-          <a href="#">How it works</a>
-          <a href="#">About us</a>
+          <a href="/all-event-types">All event types</a>
+          <a href="/faqs">FAQs</a>
+          <a href="/how-it-works">How it works</a>
+          <a href="/about-us">About us</a>
         </div>
         <div className="footer-row copyright">© 2026 Uevent</div>
       </footer>

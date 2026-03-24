@@ -76,11 +76,10 @@ const Profile: React.FC = () => {
       </div>
       <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
         <div className="footer-row">
-          <a href="#">All event types</a>
-          <a href="#">Cookie policy</a>
-          <a href="#">FAQs</a>
-          <a href="#">How it works</a>
-          <a href="#">About us</a>
+          <a href="/all-event-types">All event types</a>
+          <a href="/faqs">FAQs</a>
+          <a href="/how-it-works">How it works</a>
+          <a href="/about-us">About us</a>
         </div>
         <div className="footer-row copyright" style={{ fontWeight: 400 }}>© 2026 Uevent</div>
       </footer>
