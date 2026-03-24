@@ -9,11 +9,13 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -30,6 +32,7 @@ import { type RequestWithUser } from 'src/common/interfaces/request-with-user.ty
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
 import { CompanyPictureUploadInterceptor } from 'src/upload/upload.interceptor';
 import { UploadService } from 'src/upload/upload.service';
+import { CompanyNewsResponse } from './types/companyNewsResponse.type';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -77,7 +80,7 @@ export class CompanyController {
     summary: 'Get company details',
     description:
       'If user is logged in and is owner of this company - events of all status will be returned alongside company information.' +
-      'If user is not logged in or does not own this company, then all events of status draft will be automatically hidden',
+      'If user is not logged in or does not own this company, then all events that are not available to the public yet will be automatically hidden',
   })
   @ApiOkResponse({
     description: 'Successfully retrieved company info',
@@ -105,5 +108,68 @@ export class CompanyController {
       param,
       user ? user.id : null,
     );
+  }
+
+  @ApiOperation({
+    summary: 'Delete company',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    description: 'Company id',
+    type: Number,
+    example: 67,
+  })
+  @ApiOkResponse({
+    description: 'Company deleted successfully',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only admin or owner can delete company',
+  })
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteCompany(@Param('id') param: number, @Req() req: RequestWithUser) {
+    await this.companyService.deleteCompanyById(param, req.user.id);
+    return {
+      message: 'Company deleted successfully',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Return all company news',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Company id',
+    type: Number,
+    example: '67',
+  })
+  @ApiNotFoundResponse({
+    description: 'Company with this id is not found',
+  })
+  @ApiOkResponse({
+    description: 'Company news retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: '67' },
+        news: {
+          type: 'CompanyNewsResponse',
+          example: [
+            {
+              id: 1,
+              title: 'We are Evil',
+              content: 'who could have guessed',
+              images_url: null,
+              created_at: '2026-03-24T15:46:32.599Z',
+            },
+          ],
+        },
+      },
+    },
+  })
+  @Get(':id/news')
+  async getCompanyNews(@Param('id') param: number) {
+    return await this.companyService.getCompanyNews(param);
   }
 }
