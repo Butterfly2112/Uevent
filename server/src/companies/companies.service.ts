@@ -96,6 +96,12 @@ export class CompanyService {
     if (user.company?.picture_url) {
       await this.uploadService.deleteByUrl(user.company?.picture_url);
     }
+    if (user.company?.news) {
+      user.company?.news.map((elem) => {
+        if (elem.images_url)
+          elem.images_url.map((el) => this.uploadService.deleteByUrl(el));
+      });
+    }
 
     await this.companyRepository.delete({ id: companyId });
   }
