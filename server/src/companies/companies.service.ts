@@ -12,11 +12,15 @@ import { SafeCompanyResponse } from './types/safeCompanyResponse.type';
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
 import { UsersService } from 'src/users/users.service';
 import { mapCompanyProfileToDTO } from 'src/common/mappers/company.mapper';
+import { UploadService } from 'src/upload/upload.service';
+import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
+import { CompanyNewsResponse } from './types/companyNewsResponse.type';
 
 @Injectable()
 export class CompanyService {
   constructor(
     private usersService: UsersService,
+    private uploadService: UploadService,
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     @InjectRepository(CompanyNews)
@@ -29,6 +33,8 @@ export class CompanyService {
   ): Promise<SafeCompanyResponse> {
     const hasCompany = await this.usersService.userHasCompany(userId);
     if (hasCompany) {
+      if (registerDto.picture_url)
+        this.uploadService.deleteByUrl(registerDto.picture_url);
       throw new ConflictException('User already has company');
     }
 
@@ -79,9 +85,7 @@ export class CompanyService {
 
   async deleteCompanyById(companyId: number, userId: number): Promise<void> {
     const user = await this.usersService.getUserByIdDetailed(userId, userId);
-    console.log(user.role);
-    console.log(user.company?.id);
-    console.log(companyId);
+
     if (user.role != 'admin' && user.company?.id != companyId) {
       throw new ForbiddenException(
         'Only owner of the company or admin can delete it',
@@ -89,6 +93,9 @@ export class CompanyService {
     }
 
     //Реалізувати скасування всих івентів дотичних до компанії та повернення грошей за вже викуплені білети
+    if (user.company?.picture_url) {
+      await this.uploadService.deleteByUrl(user.company?.picture_url);
+    }
 
     await this.companyRepository.delete({ id: companyId });
   }
@@ -105,5 +112,40 @@ export class CompanyService {
     }
 
     return company;
+  }
+
+  async createCompanyNews(
+    companyId: number,
+    dto: createCompanyNewsDto,
+    userId: number,
+  ): Promise<CompanyNewsResponse> {
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+      relations: { owner: true },
+    });
+
+    if (!company) {
+      if (dto.images_url)
+        dto.images_url.forEach((image) =>
+          this.uploadService.deleteByUrl(image),
+        );
+      throw new NotFoundException('Company not found');
+    }
+    if (company.owner.id !== userId) {
+      if (dto.images_url)
+        dto.images_url.forEach((image) =>
+          this.uploadService.deleteByUrl(image),
+        );
+      throw new ForbiddenException('Only owner of the company can post news');
+    }
+
+    const news = await this.companyNewsRepository.save({ ...dto, company });
+    return {
+      id: news.id,
+      title: news.title,
+      content: news.content,
+      images_url: news.images_url,
+      created_at: news.created_at,
+    };
   }
 }
