@@ -7,19 +7,23 @@ import {
   Patch,
   Delete,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { NotificationsService } from './notifications.service';
 import { NotificationResponse } from './types/notificationsResponse.type';
 import { CreateNotificationDto } from './dto/createNotification.dto';
-
+import { UsersService } from '../users/users.service';
 import { ApiTags, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
+import { NotificationType } from './types/notifications-type.enum';
+import { Event } from 'src/events/entities/event.entity';
 
 @ApiTags('Notifications')
 @Controller('notifications')
 export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
+    private readonly usersService: UsersService,
   ) {}
 
   // Отримати всі сповіщення користувача
@@ -42,17 +46,32 @@ export class NotificationsController {
     return this.notificationsService.getNotification(id);
   }
 
-  // Створити сповіщення (тимчасово)
   @Post()
-  @ApiOperation({ summary: 'Create an notification' })
+  @ApiOperation({ summary: 'Create a notification' })
   @ApiBody({ type: CreateNotificationDto })
-  create(@Body() body: CreateNotificationDto) {
+  async create(@Body() body: CreateNotificationDto) {
+    const user = await this.usersService.getUserById(body.userId);
+
+    let event: Event | undefined = undefined;
+
+    const typesRequiringEvent = [
+      NotificationType.EVENT_REMINDER,
+      NotificationType.EVENT_COMMENT,
+    ];
+
+    if (typesRequiringEvent.includes(body.type)) {
+      if (!body.eventId) {
+        throw new BadRequestException(
+          `Event ID is required for notification type ${body.type}`,
+        );
+      }
+      event = await this.notificationsService.getEventById(body.eventId);
+    }
+
     return this.notificationsService.createNotification({
-      user: { id: body.userId } as any,
+      user,
       type: body.type,
-      title: body.title.trim(),
-      message: body.message.trim(),
-      send_email: body.send_email ?? false,
+      event,
     });
   }
 

@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -74,5 +75,35 @@ export class CompanyService {
     }
 
     return mapCompanyProfileToDTO(info, currentUserId ? currentUserId : null);
+  }
+
+  async deleteCompanyById(companyId: number, userId: number): Promise<void> {
+    const user = await this.usersService.getUserByIdDetailed(userId, userId);
+    console.log(user.role);
+    console.log(user.company?.id);
+    console.log(companyId);
+    if (user.role != 'admin' && user.company?.id != companyId) {
+      throw new ForbiddenException(
+        'Only owner of the company or admin can delete it',
+      );
+    }
+
+    //Реалізувати скасування всих івентів дотичних до компанії та повернення грошей за вже викуплені білети
+
+    await this.companyRepository.delete({ id: companyId });
+  }
+
+  async getCompanyNews(companyId: number): Promise<Company> {
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+      select: { id: true, news: true },
+      relations: { news: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    return company;
   }
 }
