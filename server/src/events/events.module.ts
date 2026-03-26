@@ -2,8 +2,22 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
 import { PromoCode } from './entities/promo-code.entity';
+import { EventService } from './events.service';
+import { EventController } from './events.controller';
+import { CompaniesModule } from 'src/companies/companies.module';
+import { UploadModule } from 'src/upload/upload.module';
+import { AuthModule } from 'src/auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Event, PromoCode])],
+  imports: [
+    CompaniesModule,
+    UploadModule,
+    AuthModule,
+    JwtModule.register({}),
+    TypeOrmModule.forFeature([Event, PromoCode]),
+  ],
+  providers: [EventService],
+  controllers: [EventController],
 })
 export class EventsModule {}

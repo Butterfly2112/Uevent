@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -47,4 +47,12 @@ export class RegisterCompanyDto {
   @ApiProperty({ description: 'Picture of the company profile' })
   @IsOptional()
   picture_url?: string;
+}
+
+export class RegisterCompanyDtoD extends OmitType(RegisterCompanyDto, [
+  'picture_url',
+] as const) {
+  @ApiProperty({ description: 'Picture of the company profile' })
+  @IsOptional()
+  picture: string;
 }

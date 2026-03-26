@@ -33,16 +33,25 @@ import { AuthService } from 'src/auth/auth.service';
 import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthGuard } from 'src/common/auth.guard';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
-import { RegisterCompanyDto } from './dto/registerCompany.dto';
+import {
+  RegisterCompanyDto,
+  RegisterCompanyDtoD,
+} from './dto/registerCompany.dto';
 import {
   CompanyPictureUploadInterceptor,
   NewsImagesUploadInterceptor,
 } from 'src/upload/upload.interceptor';
 import { UploadService } from 'src/upload/upload.service';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
-import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
-import { updateCompanyNewsDto } from './dto/updateCompanyNews.dto';
-import { UpdateCompanyDto } from './dto/updateCompany.dto';
+import {
+  CreateCompanyNewsDto,
+  CreateCompanyNewsDtoD,
+} from './dto/createCompanyNews.dto';
+import { UpdateCompanyDto, UpdateCompanyDtoD } from './dto/updateCompany.dto';
+import {
+  UpdateCompanyNewsDto,
+  UpdateCompanyNewsDtoD,
+} from './dto/updateCompanyNews.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -58,17 +67,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', example: 'Doofenshmirtz Evil Incorporated' },
-        email_for_info: { type: 'string', example: 'corp@example.com' },
-        location: { type: 'string', example: '13, Willow Street' },
-        description: { type: 'string', example: 'Evil corporation' },
-        picture: { type: 'string', format: 'binary' },
-      },
-      required: ['name', 'email_for_info', 'description'],
-    },
+    type: RegisterCompanyDtoD,
   })
   @ApiCreatedResponse({
     description: 'Company created successfully',
@@ -204,19 +203,7 @@ export class CompanyController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', example: 'New Update' },
-        content: {
-          type: 'string',
-          example: 'In the last week in Zhytomyr 7 days have passed',
-        },
-        images: { type: 'string[]', format: 'binary' },
-      },
-    },
-  })
+  @ApiBody({ type: CreateCompanyNewsDtoD })
   @ApiParam({
     name: 'id',
     type: Number,
@@ -236,7 +223,7 @@ export class CompanyController {
   async createCompanyNews(
     @Param('id') param: number,
     @Req() req: RequestWithUser,
-    @Body() dto: createCompanyNewsDto,
+    @Body() dto: CreateCompanyNewsDto,
     @UploadedFiles() images?: Express.Multer.File[],
   ) {
     const images_url = images
@@ -291,19 +278,7 @@ export class CompanyController {
     summary: 'Update company news',
   })
   @ApiBearerAuth()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', example: 'New Update' },
-        content: {
-          type: 'string',
-          example: 'In the last week in Zhytomyr 7 days have passed',
-        },
-        images: { type: 'string[]', format: 'binary' },
-      },
-    },
-  })
+  @ApiBody({ type: UpdateCompanyNewsDtoD })
   @ApiParam({
     name: 'id',
     type: Number,
@@ -325,7 +300,7 @@ export class CompanyController {
   async updteCompanyNews(
     @Param('id') param: number,
     @Req() req: RequestWithUser,
-    @Body() dto: updateCompanyNewsDto,
+    @Body() dto: UpdateCompanyNewsDto,
     @UploadedFiles() images?: Express.Multer.File[],
   ) {
     const images_url = images
@@ -352,16 +327,7 @@ export class CompanyController {
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', example: 'Doofenshmirtz Evil Incorporated' },
-        email_for_info: { type: 'string', example: 'corp@example.com' },
-        location: { type: 'string', example: '13, Willow Street' },
-        description: { type: 'string', example: 'Evil corporation' },
-        picture: { type: 'string', format: 'binary' },
-      },
-    },
+    type: UpdateCompanyDtoD,
   })
   @ApiNotFoundResponse({
     description: 'Company not found',

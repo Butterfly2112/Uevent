@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsArray, IsOptional, MaxLength, MinLength } from 'class-validator';
 
-export class createCompanyNewsDto {
+export class CreateCompanyNewsDto {
   @ApiProperty({
     description: 'Title of the news',
     example: 'SENSATION!',
@@ -25,4 +25,16 @@ export class createCompanyNewsDto {
   @IsOptional()
   @IsArray()
   images_url?: string[];
+}
+
+export class CreateCompanyNewsDtoD extends OmitType(CreateCompanyNewsDto, [
+  'images_url',
+]) {
+  @ApiProperty({
+    description: 'Images that are being attached to the news',
+    maxItems: 10,
+  })
+  @IsOptional()
+  @IsArray()
+  images?: string[];
 }

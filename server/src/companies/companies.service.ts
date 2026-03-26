@@ -13,9 +13,9 @@ import { RegisterCompanyDto } from './dto/registerCompany.dto';
 import { UsersService } from 'src/users/users.service';
 import { mapCompanyProfileToDTO } from 'src/common/mappers/company.mapper';
 import { UploadService } from 'src/upload/upload.service';
-import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
+import { CreateCompanyNewsDto } from './dto/createCompanyNews.dto';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
-import { updateCompanyNewsDto } from './dto/updateCompanyNews.dto';
+import { UpdateCompanyNewsDto } from './dto/updateCompanyNews.dto';
 import { UpdateCompanyDto } from './dto/updateCompany.dto';
 
 @Injectable()
@@ -131,7 +131,7 @@ export class CompanyService {
 
   async createCompanyNews(
     companyId: number,
-    dto: createCompanyNewsDto,
+    dto: CreateCompanyNewsDto,
     userId: number,
   ): Promise<CompanyNewsResponse> {
     const company = await this.companyRepository.findOne({
@@ -195,7 +195,7 @@ export class CompanyService {
 
   async updateCompanyNews(
     companyNewsId: number,
-    dto: updateCompanyNewsDto,
+    dto: UpdateCompanyNewsDto,
     userId: number,
   ): Promise<CompanyNewsResponse> {
     const companyNews = await this.companyNewsRepository.findOne({
@@ -293,5 +293,12 @@ export class CompanyService {
     const company2 = await this.companyRepository.save(company);
 
     return mapCompanyProfileToDTO(company2, userId);
+  }
+
+  async getCompanyByIdForServices(companyId: number): Promise<Company | null> {
+    return await this.companyRepository.findOne({
+      where: { id: companyId },
+      relations: { owner: true, events: true },
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateCompanyDto {
@@ -42,4 +42,12 @@ export class UpdateCompanyDto {
   @ApiProperty({ description: 'Picture of the company profile' })
   @IsOptional()
   picture_url?: string;
+}
+
+export class UpdateCompanyDtoD extends OmitType(UpdateCompanyDto, [
+  'picture_url',
+]) {
+  @ApiProperty({ description: 'Picture of the company profile' })
+  @IsOptional()
+  picture?: string;
 }
