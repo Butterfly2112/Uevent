@@ -25,6 +25,9 @@ const Home: React.FC = () => {
           <a href="#">Browse Events</a>
           <a href="#">Create Events</a>
           <a href="#">My tickets</a>
+          {isLoggedIn && (
+            <a href="/register-company">Register Company</a>
+          )}
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
           {isLoggedIn ? (

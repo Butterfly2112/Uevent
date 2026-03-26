@@ -25,7 +25,7 @@ const ConfirmEmail: React.FC = () => {
           setStatus('success');
           setMessage(
             data.message === 'Email already confirmed or invalid token'
-              ? 'Email already confirmed! You can now log in.'
+              ? 'Email confirmed successfully!! You can now log in.'
               : 'Email confirmed successfully! You can now log in.'
           );
           setTimeout(() => navigate('/login'), 3000);

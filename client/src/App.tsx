@@ -9,6 +9,8 @@ import AllEventTypes from './pages/AllEventTypes';
 import Faqs from './pages/Faqs';
 import HowItWorks from './pages/HowItWorks';
 import AboutUs from './pages/AboutUs';
+import RegisterCompany from './pages/RegisterCompany';
+import CompanyProfile from './pages/CompanyProfile';
 
 function App() {
   return (
@@ -23,9 +25,22 @@ function App() {
         <Route path="/faqs" element={<Faqs />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/register-company" element={<RegisterCompany />} />
+        <Route path="/company/:id" element={<CompanyProfileWrapper />} />
       </Routes>
     </BrowserRouter>
   );
 }
+
+
+// Обёртка для CompanyProfile, чтобы получить id из useParams
+import { useParams } from 'react-router-dom';
+const CompanyProfileWrapper = () => {
+  const { id } = useParams();
+  // id может быть string | undefined, CompanyProfile ожидает number
+  const companyId = id ? Number(id) : undefined;
+  if (!companyId) return <div>Invalid company id</div>;
+  return <CompanyProfile id={companyId} />;
+};
 
 export default App;

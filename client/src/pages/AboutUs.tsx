@@ -3,7 +3,7 @@ import './Home.css';
 import planetIcon from '../assets/planet.svg';
 
 const AboutUs: React.FC = () => (
-  <div className="home-root" style={{ minHeight: '100vh', background: '#f9f9ed' }}>
+  <div className="home-root" style={{ minHeight: '100vh', background: '#f9f9ed', display: 'flex', flexDirection: 'column' }}>
     <header className="home-header" style={{ background: '#fff', borderBottom: '1px solid #e0e0c0', display: 'flex', alignItems: 'center', padding: '12px 24px', gap: 16 }}>
       <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
         <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
@@ -30,7 +30,7 @@ const AboutUs: React.FC = () => (
         </div>
         <div style={{ position: 'relative', width: 400, minWidth: 260, height: 600 }}>
   <img 
-    src='public/team1.png' 
+    src='/team1.png' 
     alt="Team 1" 
     style={{ 
       width: 210, height: 160,
@@ -38,7 +38,7 @@ const AboutUs: React.FC = () => (
     }} 
   />
   <img 
-    src="public/team2.png" 
+    src="/team2.png" 
     alt="Team 2" 
     style={{ 
       width: 210, height: 160,
@@ -46,7 +46,7 @@ const AboutUs: React.FC = () => (
     }} 
   />
   <img 
-    src="public/team3.jpg" 
+    src="/team3.jpg" 
     alt="Team 3" 
     style={{ 
       width: 210, height: 160,
@@ -56,6 +56,15 @@ const AboutUs: React.FC = () => (
 </div>
       </div>
     </main>
+    <footer className="home-footer" style={{ marginTop: 'auto' }}>
+      <div className="footer-row">
+        <a href="/all-event-types">All event types</a>
+        <a href="/faqs">FAQs</a>
+        <a href="/how-it-works">How it works</a>
+        <a href="/about-us">About us</a>
+      </div>
+      <div className="footer-row copyright">© 2026 Uevent</div>
+    </footer>
   </div>
 );
 

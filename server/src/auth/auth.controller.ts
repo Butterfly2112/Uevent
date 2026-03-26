@@ -29,12 +29,15 @@ import { ConfigService } from '@nestjs/config';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
 import { LoginResponseDto } from './dto/loginResponse.dto';
 
+import { UsersService } from 'src/users/users.service';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
+    // Inject UsersService for profile endpoint
+    private usersService: UsersService,
   ) {}
 
   @Post('register')
@@ -175,8 +178,10 @@ export class AuthController {
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)
+  // Changed: Now returns user with company relation for frontend profile
   async getProfile(@Req() req: RequestWithUser) {
-    return req.user;
+    // Fetch user with company relation for profile page
+    return this.usersService.getUserByIdDetailed(req.user.id, req.user.id);
   }
 
   @ApiBearerAuth()
