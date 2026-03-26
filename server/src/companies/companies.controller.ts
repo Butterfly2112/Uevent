@@ -11,6 +11,7 @@ import {
   UploadedFile,
   Delete,
   UploadedFiles,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -40,6 +41,8 @@ import {
 import { UploadService } from 'src/upload/upload.service';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
 import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
+import { updateCompanyNewsDto } from './dto/updateCompanyNews.dto';
+import { UpdateCompanyDto } from './dto/updateCompany.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -146,7 +149,11 @@ export class CompanyController {
   @Delete(':id')
   @UseGuards(AuthGuard)
   async deleteCompany(@Param('id') param: number, @Req() req: RequestWithUser) {
-    await this.companyService.deleteCompanyById(param, req.user.id);
+    await this.companyService.deleteCompanyById(
+      param,
+      req.user.id,
+      req.user.role,
+    );
     return {
       message: 'Company deleted successfully',
     };
@@ -241,6 +248,147 @@ export class CompanyController {
     return await this.companyService.createCompanyNews(
       param,
       { ...dto, images_url },
+      req.user.id,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Delete company news',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Company news id',
+  })
+  @ApiOkResponse({
+    description: 'Company news deleted successfully',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner or admin can delete the news',
+  })
+  @ApiNotFoundResponse({
+    description: 'Company news not found',
+  })
+  @Delete('news/:id')
+  @UseGuards(AuthGuard)
+  async deleteCompanyNews(
+    @Param('id') param: number,
+    @Req() req: RequestWithUser,
+  ) {
+    await this.companyService.deleteCompanyNews(
+      param,
+      req.user.id,
+      req.user.role,
+    );
+
+    return {
+      message: 'Company news deleted successfully',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Update company news',
+  })
+  @ApiBearerAuth()
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'New Update' },
+        content: {
+          type: 'string',
+          example: 'In the last week in Zhytomyr 7 days have passed',
+        },
+        images: { type: 'string[]', format: 'binary' },
+      },
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Company news id',
+  })
+  @ApiOkResponse({
+    description: 'Company news were changed successfully',
+    type: CompanyNewsResponse,
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner can change company news',
+  })
+  @ApiNotFoundResponse({
+    description: 'Company news not found',
+  })
+  @Patch('news/:id')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(NewsImagesUploadInterceptor)
+  async updteCompanyNews(
+    @Param('id') param: number,
+    @Req() req: RequestWithUser,
+    @Body() dto: updateCompanyNewsDto,
+    @UploadedFiles() images?: Express.Multer.File[],
+  ) {
+    const images_url = images
+      ? images.map((file) =>
+          this.uploadsService.getFileUrl('news-images', file.filename),
+        )
+      : [];
+
+    return await this.companyService.updateCompanyNews(
+      param,
+      { ...dto, images_url },
+      req.user.id,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Update company information',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Company id',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Doofenshmirtz Evil Incorporated' },
+        email_for_info: { type: 'string', example: 'corp@example.com' },
+        location: { type: 'string', example: '13, Willow Street' },
+        description: { type: 'string', example: 'Evil corporation' },
+        picture: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Company not found',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner can update company information',
+  })
+  @ApiOkResponse({
+    description: 'Company updated successfully',
+    type: SafeCompanyResponse,
+  })
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(CompanyPictureUploadInterceptor)
+  async updateCompany(
+    @Param('id') param: number,
+    @Req() req: RequestWithUser,
+    @Body() dto: UpdateCompanyDto,
+    @UploadedFile() picture?: Express.Multer.File,
+  ) {
+    const picture_url = picture
+      ? this.uploadsService.getFileUrl('company-pictures', picture.filename)
+      : undefined;
+
+    return await this.companyService.updateCompany(
+      param,
+      { ...dto, picture_url },
       req.user.id,
     );
   }

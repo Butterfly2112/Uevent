@@ -15,6 +15,8 @@ import { mapCompanyProfileToDTO } from 'src/common/mappers/company.mapper';
 import { UploadService } from 'src/upload/upload.service';
 import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
+import { updateCompanyNewsDto } from './dto/updateCompanyNews.dto';
+import { UpdateCompanyDto } from './dto/updateCompany.dto';
 
 @Injectable()
 export class CompanyService {
@@ -83,23 +85,30 @@ export class CompanyService {
     return mapCompanyProfileToDTO(info, currentUserId ? currentUserId : null);
   }
 
-  async deleteCompanyById(companyId: number, userId: number): Promise<void> {
-    const user = await this.usersService.getUserByIdDetailed(userId, userId);
+  async deleteCompanyById(
+    companyId: number,
+    userId: number,
+    userRole: string,
+  ): Promise<void> {
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+      relations: { owner: true, news: true },
+    });
 
-    if (user.role != 'admin' && user.company?.id != companyId) {
+    if (userRole != 'admin' && userId != company?.owner.id) {
       throw new ForbiddenException(
         'Only owner of the company or admin can delete it',
       );
     }
 
-    //Реалізувати скасування всих івентів дотичних до компанії та повернення грошей за вже викуплені білети
-    if (user.company?.picture_url) {
-      await this.uploadService.deleteByUrl(user.company?.picture_url);
+    if (company?.picture_url) {
+      this.uploadService.deleteByUrl(company?.picture_url);
     }
-    if (user.company?.news) {
-      user.company?.news.map((elem) => {
+
+    if (company?.news) {
+      company.news.forEach((elem) => {
         if (elem.images_url)
-          elem.images_url.map((el) => this.uploadService.deleteByUrl(el));
+          elem.images_url.forEach((el) => this.uploadService.deleteByUrl(el));
       });
     }
 
@@ -152,6 +161,137 @@ export class CompanyService {
       content: news.content,
       images_url: news.images_url,
       created_at: news.created_at,
+      updated_at: news.updated_at,
     };
+  }
+
+  async deleteCompanyNews(
+    companyNewsId: number,
+    userId: number,
+    userRole: string,
+  ): Promise<void> {
+    const companyNews = await this.companyNewsRepository.findOne({
+      where: { id: companyNewsId },
+      relations: { company: { owner: true } },
+    });
+
+    if (!companyNews) {
+      throw new NotFoundException('CompanyNews not found');
+    }
+    if (companyNews.company.owner.id != userId && userRole != 'admin') {
+      throw new ForbiddenException(
+        'Only owner or admin can delete company news',
+      );
+    }
+
+    if (companyNews.images_url) {
+      companyNews.images_url.forEach((imageUrl) =>
+        this.uploadService.deleteByUrl(imageUrl),
+      );
+    }
+
+    await this.companyNewsRepository.delete({ id: companyNewsId });
+  }
+
+  async updateCompanyNews(
+    companyNewsId: number,
+    dto: updateCompanyNewsDto,
+    userId: number,
+  ): Promise<CompanyNewsResponse> {
+    const companyNews = await this.companyNewsRepository.findOne({
+      where: { id: companyNewsId },
+      relations: { company: { owner: true } },
+    });
+
+    if (!companyNews) {
+      if (dto.images_url)
+        dto.images_url.forEach((image) =>
+          this.uploadService.deleteByUrl(image),
+        );
+      throw new NotFoundException('CompanyNews not found');
+    }
+    if (companyNews.company.owner.id != userId) {
+      if (dto.images_url)
+        dto.images_url.forEach((image) =>
+          this.uploadService.deleteByUrl(image),
+        );
+      throw new ForbiddenException('Only owner can update company news');
+    }
+
+    if (dto.title && dto.title != companyNews.title) {
+      companyNews.title = dto.title;
+    }
+
+    if (dto.content && dto.content != companyNews.content) {
+      companyNews.content = dto.content;
+    }
+
+    if (dto.images_url) {
+      if (companyNews.images_url) {
+        companyNews.images_url.forEach((imageUrl) =>
+          this.uploadService.deleteByUrl(imageUrl),
+        );
+
+        companyNews.images_url = dto.images_url;
+      }
+    }
+
+    const news = await this.companyNewsRepository.save(companyNews);
+
+    return {
+      id: news.id,
+      title: news.title,
+      content: news.content,
+      images_url: news.images_url,
+      created_at: news.created_at,
+      updated_at: news.updated_at,
+    };
+  }
+
+  async updateCompany(
+    companyId: number,
+    dto: UpdateCompanyDto,
+    userId: number,
+  ): Promise<SafeCompanyResponse> {
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+      relations: { owner: true },
+    });
+
+    if (!company) {
+      if (dto.picture_url) this.uploadService.deleteByUrl(dto.picture_url);
+      throw new NotFoundException('Company not found');
+    }
+    if (company.owner.id != userId) {
+      if (dto.picture_url) this.uploadService.deleteByUrl(dto.picture_url);
+      throw new ForbiddenException('Only owner can update company');
+    }
+
+    if (dto.name && dto.name != company.name) {
+      company.name = dto.name;
+    }
+
+    if (dto.email_for_info && dto.email_for_info != company.email_for_info) {
+      company.email_for_info = dto.email_for_info;
+    }
+
+    if (dto.description && dto.description != company.description) {
+      company.description = dto.description;
+    }
+
+    if (dto.location && dto.location != company.location) {
+      company.location = dto.location;
+    }
+
+    if (dto.picture_url) {
+      if (company.picture_url) {
+        this.uploadService.deleteByUrl(company.picture_url);
+      }
+      company.picture_url = dto.picture_url;
+    }
+
+    const company2 = await this.companyRepository.save(company);
+
+    return mapCompanyProfileToDTO(company2, userId);
   }
 }
