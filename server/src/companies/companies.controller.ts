@@ -10,11 +10,14 @@ import {
   UseInterceptors,
   UploadedFile,
   Delete,
+  UploadedFiles,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
   ApiConsumes,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -30,9 +33,13 @@ import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthGuard } from 'src/common/auth.guard';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
-import { CompanyPictureUploadInterceptor } from 'src/upload/upload.interceptor';
+import {
+  CompanyPictureUploadInterceptor,
+  NewsImagesUploadInterceptor,
+} from 'src/upload/upload.interceptor';
 import { UploadService } from 'src/upload/upload.service';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
+import { createCompanyNewsDto } from './dto/createCompanyNews.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -59,6 +66,16 @@ export class CompanyController {
       },
       required: ['name', 'email_for_info', 'description'],
     },
+  })
+  @ApiCreatedResponse({
+    description: 'Company created successfully',
+  })
+  @ApiConflictResponse({
+    description: 'This user already own the company',
+  })
+  @ApiCreatedResponse({
+    description: 'Company were created successfully',
+    type: SafeCompanyResponse,
   })
   @UseInterceptors(CompanyPictureUploadInterceptor)
   async registerCompany(
@@ -171,5 +188,60 @@ export class CompanyController {
   @Get(':id/news')
   async getCompanyNews(@Param('id') param: number) {
     return await this.companyService.getCompanyNews(param);
+  }
+
+  @ApiOperation({
+    summary: 'Post company news',
+  })
+  @Post(':id/news')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'New Update' },
+        content: {
+          type: 'string',
+          example: 'In the last week in Zhytomyr 7 days have passed',
+        },
+        images: { type: 'string[]', format: 'binary' },
+      },
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Id of the company',
+  })
+  @UseInterceptors(NewsImagesUploadInterceptor)
+  @ApiNotFoundResponse({
+    description: 'Company with such id not found',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner of the company can create news',
+  })
+  @ApiCreatedResponse({
+    description: 'Company news were posted successfully',
+    type: CompanyNewsResponse,
+  })
+  async createCompanyNews(
+    @Param('id') param: number,
+    @Req() req: RequestWithUser,
+    @Body() dto: createCompanyNewsDto,
+    @UploadedFiles() images?: Express.Multer.File[],
+  ) {
+    const images_url = images
+      ? images.map((file) =>
+          this.uploadsService.getFileUrl('news-images', file.filename),
+        )
+      : [];
+
+    return await this.companyService.createCompanyNews(
+      param,
+      { ...dto, images_url },
+      req.user.id,
+    );
   }
 }

@@ -24,7 +24,11 @@ export class EventPosterUploadInterceptor extends FileInterceptor('file', {
 }) {}
 
 @Injectable()
-export class NewsImagesUploadInterceptor extends FilesInterceptor('files', 10, {
-  ...createMulterConfig('news-images'),
-  limits: { fileSize: 5 * 1024 * 1024 },
-}) {}
+export class NewsImagesUploadInterceptor extends FilesInterceptor(
+  'images',
+  10,
+  {
+    ...createMulterConfig('news-images'),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  },
+) {}
