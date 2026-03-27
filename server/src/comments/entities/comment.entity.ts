@@ -15,19 +15,29 @@ export class Comment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Event, (event) => event.comments)
+  @ManyToOne(() => Event, (event) => event.comments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'event_id' })
   event: Event;
 
-  @ManyToOne(() => User, (user) => user.comments)
+  @ManyToOne(() => User, (user) => user.comments, {
+    onDelete: 'CASCADE',
+    eager: true,
+  })
   @JoinColumn({ name: 'author_id' })
   author: User;
 
-  @ManyToOne(() => Comment, (comment) => comment.children, { nullable: true })
+  @ManyToOne(() => Comment, (comment) => comment.children, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'parent_comment_id' })
   parent: Comment;
 
-  @OneToMany(() => Comment, (comment) => comment.parent)
+  @OneToMany(() => Comment, (comment) => comment.parent, {
+    eager: true,
+  })
   children: Comment[];
 
   @Column()

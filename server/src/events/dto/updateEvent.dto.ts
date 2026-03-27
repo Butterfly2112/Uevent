@@ -1,3 +1,5 @@
+import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { EventFormat, EventStatus, EventTheme } from '../entities/event.entity';
 import {
   IsBoolean,
   IsDate,
@@ -8,11 +10,9 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { EventFormat, EventStatus, EventTheme } from '../entities/event.entity';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-export class CreateEventDto {
+export class UpdateEventDto {
   @ApiProperty({
     description: 'Owner wants to get notifications about new atendees or not',
   })
@@ -31,7 +31,8 @@ export class CreateEventDto {
     message: 'Event title cannot be longer than 50 characters long',
   })
   @IsString()
-  title: string;
+  @IsOptional()
+  title?: string;
 
   @ApiProperty({
     description: 'Description of the event',
@@ -44,7 +45,8 @@ export class CreateEventDto {
     message: 'Event description cannot be longer than 50 characters long',
   })
   @IsString()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @ApiProperty({
     description: 'Full price of the ticket for the event',
@@ -52,7 +54,8 @@ export class CreateEventDto {
   })
   @IsNumber()
   @Type(() => Number)
-  price: number;
+  @IsOptional()
+  price?: number;
 
   @ApiProperty({
     description: 'Limit of the tickets for the event',
@@ -88,21 +91,24 @@ export class CreateEventDto {
   })
   @IsDate()
   @Type(() => Date)
-  start_date: Date;
+  @IsOptional()
+  start_date?: Date;
 
   @ApiProperty({
     description: 'When event will end',
   })
   @IsDate()
   @Type(() => Date)
-  end_date: Date;
+  @IsOptional()
+  end_date?: Date;
 
   @ApiProperty({
     description: 'When event will be published and available to the public',
   })
   @IsDate()
   @Type(() => Date)
-  publish_date: Date;
+  @IsOptional()
+  publish_date?: Date;
 
   @ApiProperty({
     description: 'Status of the event',
@@ -133,12 +139,13 @@ export class CreateEventDto {
     enum: ['everybody', 'attendees_only'],
   })
   @IsEnum(['everybody', 'attendees_only'])
-  visitor_visibility: 'everybody' | 'attendees_only';
+  @IsOptional()
+  visitor_visibility?: 'everybody' | 'attendees_only';
 }
 
-export class CreateEventDtoD extends OmitType(CreateEventDto, [
-  'poster_url',
-] as const) {
+export class UpdateEventDtoD extends OmitType(UpdateEventDto, [
+  'poster_url' as const,
+]) {
   @ApiProperty({
     description: 'Picture of the event',
   })

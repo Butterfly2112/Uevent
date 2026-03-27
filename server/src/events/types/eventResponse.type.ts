@@ -5,6 +5,7 @@ import { CommentResponse } from 'src/comments/types/commentResponse.type';
 import { PromoCodeResponse } from './promo-codeResponse.type';
 import { ApiProperty } from '@nestjs/swagger';
 import { SafeCompanyResponse } from 'src/companies/types/safeCompanyResponse.type';
+import { IsArray } from 'class-validator';
 
 export class EventResponse {
   @ApiProperty({ description: 'Unique identifier of the event', example: 1 })
@@ -116,7 +117,8 @@ export class EventResponse {
   tickets?: Partial<TicketResponse>[];
 
   @ApiProperty({ description: 'Comments left on this event', required: false })
-  comments?: CommentResponse;
+  @IsArray()
+  comments?: CommentResponse[];
 
   @ApiProperty({
     description: 'Promo codes for this event (owner/admin only)',
