@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -32,6 +34,7 @@ import { EventResponse } from './types/eventResponse.type';
 import { UpdateEventDto, UpdateEventDtoD } from './dto/updateEvent.dto';
 import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthService } from 'src/auth/auth.service';
+import { GetEventsDto } from './dto/getEvents.dto';
 
 @Controller('events')
 export class EventController {
@@ -40,6 +43,21 @@ export class EventController {
     private uploadService: UploadService,
     private authService: AuthService,
   ) {}
+
+  @Get('search')
+  @ApiOperation({ summary: 'Get list of events with filters' })
+  @ApiOkResponse({ type: EventResponse, isArray: true })
+  async getEvents(
+    @Query() dto: GetEventsDto,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    let user: JwtType | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      user = await this.authService.getUserFromToken(authHeader);
+    }
+
+    return this.eventService.searchEvents(dto, user?.role);
+  }
 
   @ApiOperation({
     summary: 'Create event',
@@ -159,5 +177,33 @@ export class EventController {
       user ? user.id : undefined,
       user ? user.role : undefined,
     );
+  }
+
+  @ApiOperation({
+    summary: 'Delete event',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Event id',
+  })
+  @ApiNotFoundResponse({
+    description: 'Event not found',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner or admin can delete event',
+  })
+  @ApiOkResponse({
+    description: 'Event deleted successfully',
+  })
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteEvent(@Param('id') param: number, @Req() req: RequestWithUser) {
+    await this.eventService.deleteEvent(param, req.user.id, req.user.role);
+
+    return {
+      message: 'Event deleted successfully',
+    };
   }
 }

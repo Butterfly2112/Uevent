@@ -20,11 +20,11 @@ export class Ticket {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Event, (event) => event.tickets)
+  @ManyToOne(() => Event, (event) => event.tickets, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
   event: Event;
 
-  @ManyToOne(() => User, (user) => user.tickets)
+  @ManyToOne(() => User, (user) => user.tickets, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
