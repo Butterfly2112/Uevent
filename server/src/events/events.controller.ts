@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
+  Headers,
   Param,
+  Patch,
   Post,
   Req,
   UploadedFile,
@@ -21,16 +24,21 @@ import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
 } from '@nestjs/swagger';
 import { EventResponse } from './types/eventResponse.type';
+import { UpdateEventDto, UpdateEventDtoD } from './dto/updateEvent.dto';
+import { JwtType } from 'src/auth/types/jwtType.type';
+import { AuthService } from 'src/auth/auth.service';
 
 @Controller('events')
 export class EventController {
   constructor(
     private eventService: EventService,
     private uploadService: UploadService,
+    private authService: AuthService,
   ) {}
 
   @ApiOperation({
@@ -73,5 +81,83 @@ export class EventController {
       ...dto,
       poster_url,
     });
+  }
+
+  @ApiOperation({
+    summary: 'Update Event',
+  })
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Event id',
+  })
+  @ApiBody({
+    type: UpdateEventDtoD,
+  })
+  @ApiNotFoundResponse({
+    description: 'Event not found',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner allowed to update event',
+  })
+  @ApiOkResponse({
+    description: 'Event updated successfully',
+    type: EventResponse,
+  })
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(EventPosterUploadInterceptor)
+  async updateEvent(
+    @Param('id') param: number,
+    @Req() req: RequestWithUser,
+    @Body() dto: UpdateEventDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const poster_url = file
+      ? this.uploadService.getFileUrl('event-posters', file.filename)
+      : undefined;
+
+    return await this.eventService.updateEvent(param, req.user.id, {
+      ...dto,
+      poster_url,
+    });
+  }
+
+  @ApiOperation({
+    summary: 'Get event details',
+    description:
+      'If user is logged in and is host of this event - events of all status will be returned alongside company information. ' +
+      'Otherwise strict visibility filtration will be user to retrieve information visible depending on users permissions or ' +
+      'will not be retrieved at all if this event yet not available to the public',
+  })
+  @ApiOkResponse({
+    description: 'Successfully retrieved event info',
+    type: EventResponse,
+  })
+  @ApiNotFoundResponse({
+    description: 'Event not found',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Event id',
+  })
+  @Get(':id')
+  async getEventInfo(
+    @Param('id') param: number,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    let user: JwtType | null = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      user = await this.authService.getUserFromToken(authHeader);
+    }
+
+    return this.eventService.getEventDetailedById(
+      param,
+      user ? user.id : undefined,
+      user ? user.role : undefined,
+    );
   }
 }

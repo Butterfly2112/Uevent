@@ -139,18 +139,12 @@ export class CompanyService {
       relations: { owner: true },
     });
 
-    if (!company) {
+    if (!company || company.owner.id !== userId) {
       if (dto.images_url)
         dto.images_url.forEach((image) =>
           this.uploadService.deleteByUrl(image),
         );
-      throw new NotFoundException('Company not found');
-    }
-    if (company.owner.id !== userId) {
-      if (dto.images_url)
-        dto.images_url.forEach((image) =>
-          this.uploadService.deleteByUrl(image),
-        );
+      if (!company) throw new NotFoundException('Company not found');
       throw new ForbiddenException('Only owner of the company can post news');
     }
 
@@ -203,38 +197,26 @@ export class CompanyService {
       relations: { company: { owner: true } },
     });
 
-    if (!companyNews) {
+    if (!companyNews || companyNews.company.owner.id != userId) {
       if (dto.images_url)
         dto.images_url.forEach((image) =>
           this.uploadService.deleteByUrl(image),
         );
-      throw new NotFoundException('CompanyNews not found');
-    }
-    if (companyNews.company.owner.id != userId) {
-      if (dto.images_url)
-        dto.images_url.forEach((image) =>
-          this.uploadService.deleteByUrl(image),
-        );
+      if (!companyNews) throw new NotFoundException('CompanyNews not found');
       throw new ForbiddenException('Only owner can update company news');
     }
 
-    if (dto.title && dto.title != companyNews.title) {
-      companyNews.title = dto.title;
+    if (dto.images_url || companyNews.images_url) {
+      companyNews.images_url.forEach((imageUrl) =>
+        this.uploadService.deleteByUrl(imageUrl),
+      );
     }
 
-    if (dto.content && dto.content != companyNews.content) {
-      companyNews.content = dto.content;
-    }
+    const updateData = Object.fromEntries(
+      Object.entries(dto).filter(([_, value]) => value !== undefined),
+    );
 
-    if (dto.images_url) {
-      if (companyNews.images_url) {
-        companyNews.images_url.forEach((imageUrl) =>
-          this.uploadService.deleteByUrl(imageUrl),
-        );
-
-        companyNews.images_url = dto.images_url;
-      }
-    }
+    Object.assign(companyNews, updateData);
 
     const news = await this.companyNewsRepository.save(companyNews);
 
@@ -255,43 +237,26 @@ export class CompanyService {
   ): Promise<SafeCompanyResponse> {
     const company = await this.companyRepository.findOne({
       where: { id: companyId },
-      relations: { owner: true },
+      relations: { owner: true, news: true, events: true },
     });
 
-    if (!company) {
+    if (!company || company.owner.id != userId) {
       if (dto.picture_url) this.uploadService.deleteByUrl(dto.picture_url);
-      throw new NotFoundException('Company not found');
-    }
-    if (company.owner.id != userId) {
-      if (dto.picture_url) this.uploadService.deleteByUrl(dto.picture_url);
+      if (!company) throw new NotFoundException('Company not found');
       throw new ForbiddenException('Only owner can update company');
     }
 
-    if (dto.name && dto.name != company.name) {
-      company.name = dto.name;
+    if (dto.picture_url || company.picture_url) {
+      this.uploadService.deleteByUrl(company.picture_url);
     }
 
-    if (dto.email_for_info && dto.email_for_info != company.email_for_info) {
-      company.email_for_info = dto.email_for_info;
-    }
+    const updateData = Object.fromEntries(
+      Object.entries(dto).filter(([_, value]) => value !== undefined),
+    );
 
-    if (dto.description && dto.description != company.description) {
-      company.description = dto.description;
-    }
-
-    if (dto.location && dto.location != company.location) {
-      company.location = dto.location;
-    }
-
-    if (dto.picture_url) {
-      if (company.picture_url) {
-        this.uploadService.deleteByUrl(company.picture_url);
-      }
-      company.picture_url = dto.picture_url;
-    }
+    Object.assign(company, updateData);
 
     const company2 = await this.companyRepository.save(company);
-
     return mapCompanyProfileToDTO(company2, userId);
   }
 
