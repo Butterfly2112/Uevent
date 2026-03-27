@@ -1,13 +1,7 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, MaxLength, MinLength } from 'class-validator';
 
-export class RegisterCompanyDto {
+export class UpdateCompanyDto {
   @ApiProperty({
     description: 'Name of the company',
     example: 'Doofenshmirtz Evil Incorporated',
@@ -18,15 +12,15 @@ export class RegisterCompanyDto {
   @MaxLength(50, {
     message: 'Name of the company needs to be shorter than 50 characters',
   })
-  name: string;
+  @IsOptional()
+  name?: string;
 
   @ApiProperty({
     description: 'Email for reaching company',
     example: 'corporation@example.com',
   })
-  @IsNotEmpty({ message: 'Email is required' })
-  @IsEmail({}, { message: 'Invalid email' })
-  email_for_info: string;
+  @IsOptional()
+  email_for_info?: string;
 
   @ApiProperty({
     description: 'Location of the company',
@@ -42,17 +36,18 @@ export class RegisterCompanyDto {
   @MaxLength(500, {
     message: 'Description cannot be longer than 500 characters',
   })
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @ApiProperty({ description: 'Picture of the company profile' })
   @IsOptional()
   picture_url?: string;
 }
 
-export class RegisterCompanyDtoD extends OmitType(RegisterCompanyDto, [
+export class UpdateCompanyDtoD extends OmitType(UpdateCompanyDto, [
   'picture_url',
-] as const) {
+]) {
   @ApiProperty({ description: 'Picture of the company profile' })
   @IsOptional()
-  picture: string;
+  picture?: string;
 }

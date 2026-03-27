@@ -28,4 +28,9 @@ export class CompanyNewsResponse {
     description: 'Date when news were created',
   })
   created_at: Date;
+
+  @ApiProperty({
+    description: 'Date when news were updated',
+  })
+  updated_at: Date;
 }
