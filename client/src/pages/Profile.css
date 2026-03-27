@@ -59,7 +59,7 @@
 .profile-avatar {
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  /* border-radius: 50%; */
   background: #d8d5c9;
   display: flex;
   align-items: center;

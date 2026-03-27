@@ -64,6 +64,14 @@ const Profile: React.FC = () => {
           email: data.email,
           company: data.company,
         });
+        // Store user profile in localStorage for owner checks in CompanyProfile and Home
+        localStorage.setItem('profile', JSON.stringify({
+          id: data.id,
+          login: data.login,
+          username: data.username,
+          email: data.email,
+          company: data.company,
+        }));
       } catch {
         setError('Network error');
       } finally {
@@ -81,18 +89,6 @@ const Profile: React.FC = () => {
   }
   // Header as on all pages
   const isLoggedIn = !!localStorage.getItem('access_token');
-  // Import images at the top for TypeScript compatibility
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  // const planetIcon = require('../assets/planet.svg');
-  // const searchIcon = require('../assets/search.svg');
-  // Instead, use import
-  // At the top of the file, add:
-  // import planetIcon from '../assets/planet.svg';
-  // import searchIcon from '../assets/search.svg';
-  // For now, inline import here:
-  // (Assume these imports are at the top of the file)
-  // import planetIcon from '../assets/planet.svg';
-  // import searchIcon from '../assets/search.svg';
   return (
     <div className="profile-root">
       <header className="home-header">
@@ -110,9 +106,11 @@ const Profile: React.FC = () => {
           <a href="#">Browse Events</a>
           <a href="#">Create Events</a>
           <a href="#">My tickets</a>
-          {isLoggedIn && (
+          {isLoggedIn && user.company && user.company.id ? (
+            <a href={`/company/${user.company.id}`}>View Company{user.company.name ? `: ${user.company.name}` : ''}</a>
+          ) : isLoggedIn ? (
             <a href="/register-company">Register Company</a>
-          )}
+          ) : null}
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
           {isLoggedIn ? (
@@ -160,30 +158,7 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* View My Company button below the profile card */}
-      {user.company && user.company.id && (
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', margin: '32px 0 0 0' }}>
-          <a
-            href={`/company/${user.company.id}`}
-            style={{
-              display: 'inline-block',
-              background: 'linear-gradient(90deg, #f7f48b 0%, #f3d250 100%)',
-              border: '1px solid #bfa800',
-              borderRadius: 16,
-              fontSize: 18,
-              color: '#222',
-              padding: '14px 32px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-              transition: 'background 0.2s',
-              marginTop: 0,
-            }}
-          >
-            View My Company{user.company.name ? `: ${user.company.name}` : ''}
-          </a>
-        </div>
-      )}
+
       <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
         <div className="footer-row">
           <a href="/all-event-types">All event types</a>
