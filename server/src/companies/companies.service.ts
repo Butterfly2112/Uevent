@@ -17,6 +17,7 @@ import { CreateCompanyNewsDto } from './dto/createCompanyNews.dto';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
 import { UpdateCompanyNewsDto } from './dto/updateCompanyNews.dto';
 import { UpdateCompanyDto } from './dto/updateCompany.dto';
+import { EventStatus } from 'src/events/entities/event.entity';
 
 @Injectable()
 export class CompanyService {
@@ -111,6 +112,13 @@ export class CompanyService {
           elem.images_url.forEach((el) => this.uploadService.deleteByUrl(el));
       });
     }
+
+    await this.companyRepository.manager
+      .createQueryBuilder()
+      .update('events')
+      .set({ status: EventStatus.CANCELED })
+      .where('company_id = :companyId', { companyId })
+      .execute();
 
     await this.companyRepository.delete({ id: companyId });
   }
