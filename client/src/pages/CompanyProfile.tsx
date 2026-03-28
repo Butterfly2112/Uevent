@@ -37,20 +37,20 @@ interface Company {
   news?: News[];
 }
 
+
 const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
-    // Удалён неиспользуемый newsIndex
-    // State for modal news view
-    const [openNews, setOpenNews] = useState<News | null>(null);
+  // State for modal news view
+  const [openNews, setOpenNews] = useState<News | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // Edit company modal removed
-
   const [showNewsForm, setShowNewsForm] = useState(false);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', images: [] as File[] });
   const [newsPreview, setNewsPreview] = useState<string[]>([]);
   const [newsMessage, setNewsMessage] = useState('');
   const [newsLoading, setNewsLoading] = useState(false);
+  // State for showing all news or only 2
+  const [showAllNews, setShowAllNews] = useState(false);
 
     const handleNewsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
@@ -242,49 +242,90 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             textAlign: 'left',
             paddingLeft: 12,
           }}>
-            <h3 style={{ fontSize: 26, color: '#222', margin: 0, fontWeight: 700, letterSpacing: 0.5 }}>Company News</h3>
+            <h3 style={{ fontSize: 26, color: '#222', marginLeft: -260, fontWeight: 700, letterSpacing: 0.5 }}>Company News</h3>
           </div>
-        <div style={{
-          margin: '32px auto 0 auto',
-          maxWidth: 900,
-          width: '100%',
-          background: 'rgba(120,120,120,0.06)',
-          borderRadius: 12,
-          boxShadow: '0 1px 4px #bbb',
-          padding: '24px 0',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 24,
-          justifyContent: 'center',
-        }}>
-          {[...company.news].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((news) => (
-            <div key={news.id} onClick={() => setOpenNews(news)} style={{
-              cursor: 'pointer',
-              width: 280,
-              background: '#fff',
-              borderRadius: 10,
-              boxShadow: '0 1px 8px #ffe066',
-              padding: 18,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              alignItems: 'flex-start',
-              transition: 'box-shadow 0.2s',
-              overflow: 'hidden',
-              minHeight: 90,
-            }}>
-              <div style={{ fontWeight: 600, fontSize: 18, color: '#222', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.title}</div>
-              <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>{new Date(news.created_at).toLocaleDateString()}</div>
-              <div style={{ color: '#444', fontSize: 15, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.content.slice(0, 60)}{news.content.length > 60 ? '...' : ''}</div>
-              {news.images_url && news.images_url.length > 0 && (
-                <img src={(news.images_url[0].startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + news.images_url[0] : news.images_url[0])} alt="news" style={{ maxWidth: 70, maxHeight: 70, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', marginTop: 2 }} />
-              )}
-            </div>
-          ))}
-        </div>
+          <div style={{
+            margin: '12px auto 0 40px',
+            maxWidth: 900,
+            width: '100%',
+            background: 'rgba(120,120,120,0.06)',
+            borderRadius: 12,
+            boxShadow: '0 1px 4px #bbb',
+            padding: '24px 0',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 24,
+            justifyContent: 'center',
+            position: 'relative',
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+          }}>
+            {/* News cards */}
+            {(
+              showAllNews
+                ? [...company.news]
+                : [...company.news].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 2)
+            )
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map((news) => (
+                <div key={news.id} onClick={() => setOpenNews(news)} style={{
+                  cursor: 'pointer',
+                  width: 280,
+                  background: '#fff',
+                  borderRadius: 10,
+                  boxShadow: '0 1px 8px #ffe066',
+                  padding: 18,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  alignItems: 'flex-start',
+                  transition: 'box-shadow 0.2s',
+                  overflow: 'hidden',
+                  minHeight: 160,
+                  maxHeight: 160,
+                  height: 160,
+                  justifyContent: 'space-between',
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: 18, color: '#222', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.title}</div>
+                  <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>{new Date(news.created_at).toLocaleDateString()}</div>
+                  <div style={{ color: '#444', fontSize: 15, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.content.slice(0, 60)}{news.content.length > 60 ? '...' : ''}</div>
+                  {news.images_url && news.images_url.length > 0 && (
+                    <img src={(news.images_url[0].startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + news.images_url[0] : news.images_url[0])} alt="news" style={{ maxWidth: 70, maxHeight: 70, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', marginTop: 2 }} />
+                  )}
+                </div>
+              ))}
+            {/* View all news button inside gray block */}
+            {company.news.length > 2 && (
+              <div style={{
+                position: 'absolute',
+                right: -10,
+                bottom: 16,
+                zIndex: 2,
+              }}>
+                <button
+                  onClick={() => setShowAllNews((prev) => !prev)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#666',
+                    borderRadius: 8,
+                    padding: '8px 24px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    boxShadow: 'none',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseOver={e => (e.currentTarget.style.color = '#222')}
+                  onMouseOut={e => (e.currentTarget.style.color = '#666')}
+                >
+                  {showAllNews ? 'Hide news' : 'View all news'}
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
-      {/* ...остальной JSX... */}
       {openNews && (
         <div
           style={{
