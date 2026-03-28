@@ -16,8 +16,6 @@ export class NotificationsService {
     private emailService: EmailService,
     @InjectRepository(User)
     private userRepo: Repository<User>,
-    @InjectRepository(Event)
-    private eventRepo: Repository<Event>,
   ) {}
 
   private notificationConfig = {
@@ -37,14 +35,11 @@ export class NotificationsService {
     user: User;
     type: NotificationType;
     event?: Event;
+    ticket?: any;
   }): Promise<Notification> {
     const content = this.buildNotificationContent(data);
 
-    const sendEmail = [
-      NotificationType.TICKET_PURCHASE,
-      NotificationType.EVENT_REMINDER,
-      NotificationType.PAYMENT_SUCCESS,
-    ].includes(data.type);
+    const sendEmail = this.notificationConfig[data.type].email;
 
     const notification = this.notificationRepo.create({
       user: data.user,
@@ -58,7 +53,7 @@ export class NotificationsService {
     const saved = await this.notificationRepo.save(notification);
 
     if (sendEmail) {
-      await this.handleEmail(saved, data.event);
+      await this.handleEmail(saved, data.event, data.ticket);
     }
 
     return saved;
@@ -107,7 +102,11 @@ export class NotificationsService {
     }
   }
 
-  private async handleEmail(notification: Notification, event?: Event) {
+  private async handleEmail(
+    notification: Notification,
+    event?: Event,
+    ticket?: any,
+  ) {
     try {
       const type = notification.type as
         | NotificationType.TICKET_PURCHASE
@@ -125,16 +124,27 @@ export class NotificationsService {
           break;
 
         case NotificationType.TICKET_PURCHASE:
+          if (!ticket) throw new Error('Ticket is required');
+
           await this.emailService.sendTicketPurchase(
             notification.user.login,
             notification.user.email,
+            ticket,
           );
           break;
 
         case NotificationType.PAYMENT_SUCCESS:
+          if (!ticket) throw new Error('Ticket is required');
+
           await this.emailService.sendPaymentSuccess(
             notification.user.login,
             notification.user.email,
+            {
+              id: ticket.id,
+              eventTitle: ticket.eventTitle,
+              eventDate: ticket.eventDate,
+              pricePaid: ticket.price,
+            },
           );
           break;
       }
@@ -197,10 +207,5 @@ export class NotificationsService {
       sent_at: notification.sent_at ?? null,
       created_at: notification.created_at,
     };
-  }
-  async getEventById(id: number): Promise<Event> {
-    const event = await this.eventRepo.findOne({ where: { id } });
-    if (!event) throw new Error('Event not found');
-    return event;
   }
 }

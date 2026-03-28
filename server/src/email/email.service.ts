@@ -67,21 +67,83 @@ export class EmailService {
     console.log('Reminder email sent: ', info.messageId);
   }
 
-  async sendTicketPurchase(username: string, email: string) {
+  async sendTicketPurchase(
+    username: string,
+    email: string,
+    ticket: {
+      id: number;
+      eventTitle: string;
+      eventDate: Date;
+      price: number;
+      promoCode?: string;
+    },
+  ) {
     await this.transporter.sendMail({
       from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
       to: email,
-      subject: 'Ticket purchased',
-      html: `<h2>Hello ${username}</h2><p>You bought a ticket</p>`,
+      subject: 'Ticket Purchased Successfully',
+      html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Hello ${username}</h2>
+        <p>Your ticket has been successfully purchased.</p>
+
+        <hr />
+
+        <h3>Ticket Details</h3>
+        <ul>
+          <li><b>Ticket ID:</b> ${ticket.id}</li>
+          <li><b>Event:</b> ${ticket.eventTitle}</li>
+          <li><b>Date:</b> ${new Date(ticket.eventDate).toLocaleString()}</li>
+          <li><b>Price:</b> $${ticket.price}</li>
+          ${
+            ticket.promoCode
+              ? `<li><b>Promo Code:</b> ${ticket.promoCode}</li>`
+              : ''
+          }
+        </ul>
+
+        <p style="margin-top:20px;">
+          Thank you for using <b>Uevent</b>
+        </p>
+      </div>
+    `,
     });
   }
 
-  async sendPaymentSuccess(username: string, email: string) {
+  async sendPaymentSuccess(
+    username: string,
+    email: string,
+    ticket: {
+      id: number;
+      eventTitle: string;
+      eventDate: Date;
+      pricePaid: number;
+    },
+  ) {
     await this.transporter.sendMail({
       from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
       to: email,
-      subject: 'Payment successful',
-      html: `<h2>Hello ${username}</h2><p>Your payment was successful</p>`,
+      subject: 'Payment Successful',
+      html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Payment Successful</h2>
+        <p>Hello ${username}, your payment has been confirmed.</p>
+
+        <hr />
+
+        <h3>Ticket Info</h3>
+        <ul>
+          <li><b>Ticket ID:</b> ${ticket.id}</li>
+          <li><b>Event:</b> ${ticket.eventTitle}</li>
+          <li><b>Date:</b> ${new Date(ticket.eventDate).toLocaleString()}</li>
+          <li><b>Amount Paid:</b> $${ticket.pricePaid}</li>
+        </ul>
+
+        <p style="margin-top:20px;">
+          Enjoy your event!
+        </p>
+      </div>
+    `,
     });
   }
 }

@@ -17,6 +17,7 @@ import { UsersService } from '../users/users.service';
 import { ApiTags, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
 import { NotificationType } from './types/notifications-type.enum';
 import { Event } from 'src/events/entities/event.entity';
+import { EventService } from '../events/events.service';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -24,6 +25,7 @@ export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly usersService: UsersService,
+    private readonly eventService: EventService,
   ) {}
 
   // Отримати всі сповіщення користувача
@@ -65,7 +67,7 @@ export class NotificationsController {
           `Event ID is required for notification type ${body.type}`,
         );
       }
-      event = await this.notificationsService.getEventById(body.eventId);
+      event = await this.eventService.getEventById(body.eventId);
     }
 
     return this.notificationsService.createNotification({

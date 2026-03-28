@@ -7,12 +7,14 @@ import { EmailModule } from 'src/email/email.module';
 import { User } from 'src/users/entities/user.entity';
 import { Event } from 'src/events/entities/event.entity';
 import { UsersModule } from '../users/users.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification, User, Event]),
     EmailModule,
     UsersModule,
+    EventsModule,
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService],
