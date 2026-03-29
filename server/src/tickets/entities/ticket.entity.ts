@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -10,9 +11,9 @@ import { Event } from 'src/events/entities/event.entity';
 import { PromoCode } from 'src/events/entities/promo-code.entity';
 
 export enum TicketStatus {
-  PAID = 'Paid',
-  CANCELLED = 'cancelled',
   PENDING = 'pending',
+  PAID = 'paid',
+  CANCELLED = 'cancelled',
 }
 
 @Entity('tickets')
@@ -20,24 +21,31 @@ export class Ticket {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Event, (event) => event.tickets, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'event_id' })
-  event: Event;
-
-  @ManyToOne(() => User, (user) => user.tickets, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.tickets)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ default: true })
-  user_is_visible_to_public: boolean;
+  @ManyToOne(() => Event, (event) => event.tickets)
+  @JoinColumn({ name: 'event_id' })
+  event: Event;
 
-  @ManyToOne(() => PromoCode, { nullable: true, eager: false })
+  @ManyToOne(() => PromoCode, { nullable: true })
   @JoinColumn({ name: 'promo_code_id' })
-  promo_code: PromoCode;
+  promo_code?: PromoCode;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'decimal' })
   price_paid: number;
 
-  @Column({ type: 'enum', enum: TicketStatus, default: TicketStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: TicketStatus,
+    default: TicketStatus.PENDING,
+  })
   status: TicketStatus;
+
+  @Column({ default: true })
+  user_is_visible_to_public: boolean; 
+
+  @CreateDateColumn()
+  created_at: Date;
 }

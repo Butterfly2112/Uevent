@@ -241,4 +241,16 @@ export class EventService {
 
     return { data: safeEvents, total };
   }
+
+  async getEventById(id: number): Promise<Event> {
+    const event = await this.eventRepository.findOne({
+      where: { id },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    return event;
+  }
 }
