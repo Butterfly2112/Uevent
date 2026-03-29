@@ -190,7 +190,7 @@ export class AuthService {
       const { accessToken, refreshJwtToken } =
         await this.generateJwtTokens(user);
 
-      await this.tokenRepository.delete(storedToken);
+      await this.tokenRepository.delete(storedToken.id);
       await this.saveNewRefreshToken(user, refreshJwtToken);
 
       return {
@@ -217,5 +217,62 @@ export class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  async requestPasswordReset(userEmail: string): Promise<void> {
+    const user = await this.usersService.findByLoginOrEmail(userEmail);
+    if (!user) return;
+
+    const resetToken = await this.tokenRepository.findOne({
+      where: { user: { id: user.id }, type: 'passwordChange' },
+      select: { user: { id: true } },
+      relations: { user: true },
+    });
+
+    if (resetToken) {
+      await this.tokenRepository.delete(resetToken.id);
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    await this.tokenRepository.save({
+      type: 'passwordChange',
+      token: token,
+      expires_at: new Date(Date.now() + 15 * 60 * 1000),
+      user: user,
+    });
+
+    this.emailService.sendPasswordRequest(user.username, token, userEmail);
+  }
+
+  async passwordReset(token: string, newPassword: string): Promise<void> {
+    const resetToken = await this.tokenRepository.findOne({
+      where: { token: token },
+      select: { id: true },
+      relations: { user: true },
+    });
+
+    if (!resetToken) {
+      throw new ConflictException('Invalid token');
+    }
+    if (resetToken.expires_at < new Date()) {
+      this.tokenRepository.delete(resetToken.id);
+      throw new ForbiddenException(
+        'Reset Token has expired. Please request password reset again',
+      );
+    }
+
+    await this.usersService.resetPassword(newPassword, resetToken.user.id);
+    await this.tokenRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Token)
+      .where('type IN (:...types)', {
+        types: ['passwordChange', 'refreshJwtToken'],
+      })
+      .execute();
+  }
+
+  async getProfile(userId: number) {
+    return await this.usersService.getUserByIdDetailed(userId, userId);
   }
 }

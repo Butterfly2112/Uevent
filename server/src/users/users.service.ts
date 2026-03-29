@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -143,5 +144,11 @@ export class UsersService {
       relations: { company: true },
     });
     return user?.company ? true : false;
+  }
+
+  async resetPassword(newPassword: string, userId: number): Promise<void> {
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    await this.usersRepository.update(userId, { password_hash: password_hash });
   }
 }

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -19,6 +20,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
@@ -28,8 +30,11 @@ import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
 import { LoginResponseDto } from './dto/loginResponse.dto';
-
 import { UsersService } from 'src/users/users.service';
+import {
+  requestPasswordResetDto,
+  resetPasswordDto,
+} from './dto/passwordReset.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -178,10 +183,8 @@ export class AuthController {
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)
-  // Changed: Now returns user with company relation for frontend profile
   async getProfile(@Req() req: RequestWithUser) {
-    // Fetch user with company relation for profile page
-    return this.usersService.getUserByIdDetailed(req.user.id, req.user.id);
+    return await this.authService.getProfile(req.user.id);
   }
 
   @ApiBearerAuth()
@@ -202,5 +205,32 @@ export class AuthController {
     });
 
     return { message: 'Logged out successfully' };
+  }
+
+  @Post('request-pass-reset')
+  async requestPasswordReset(@Body() body: requestPasswordResetDto) {
+    await this.authService.requestPasswordReset(body.email);
+
+    return {
+      message:
+        'Please check your email box. If you have not received an email,' +
+        'please check correctness of email or if you have account on this email',
+    };
+  }
+
+  @Post('password-reset')
+  @ApiQuery({
+    name: 'token',
+    description: 'Secret token that were send in the email',
+    type: String,
+  })
+  async passwordReset(
+    @Query() query: { token: string },
+    @Body() dto: resetPasswordDto,
+  ) {
+    await this.authService.passwordReset(query.token, dto.newPassword);
+    return {
+      message: 'Your password were reset successfully, please proceed to login',
+    };
   }
 }
