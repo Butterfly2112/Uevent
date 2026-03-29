@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -22,6 +23,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
@@ -207,6 +209,16 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
+  @ApiOperation({
+    summary: 'Request password reset',
+  })
+  @ApiBody({
+    type: requestPasswordResetDto,
+  })
+  @ApiCreatedResponse({
+    description:
+      'If account with such email exists - letter with token will be sent, if not - nothing happens',
+  })
   @Post('request-pass-reset')
   async requestPasswordReset(@Body() body: requestPasswordResetDto) {
     await this.authService.requestPasswordReset(body.email);
@@ -218,11 +230,29 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({
+    summary: 'Password reset',
+    description:
+      'After this action all the refresh tokens will be deleted, so user need to login again from all devices',
+  })
   @Post('password-reset')
   @ApiQuery({
     name: 'token',
     description: 'Secret token that were send in the email',
     type: String,
+  })
+  @ApiBody({
+    type: resetPasswordDto,
+  })
+  @ApiConflictResponse({
+    description: 'Invalid token',
+  })
+  @ApiForbiddenResponse({
+    description: 'Reset Token has expired. Please request password reset again',
+  })
+  @ApiCreatedResponse({
+    description:
+      'Your password were reset successfully, please proceed to login',
   })
   async passwordReset(
     @Query() query: { token: string },
