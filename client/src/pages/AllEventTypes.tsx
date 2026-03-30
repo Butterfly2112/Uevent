@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import Logout from '../components/Logout';
 import planetIcon from '../assets/planet.svg';
@@ -24,17 +23,52 @@ const AllEventTypes: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Advanced filter states
+  const [format, setFormat] = useState('');
+  const [theme, setTheme] = useState('');
+  const [status, setStatus] = useState('');
+  const [address, setAddress] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [publishDate, setPublishDate] = useState('');
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  const fetchEvents = async (query = '') => {
+  interface EventFilterParams {
+    search?: string;
+    format?: string;
+    theme?: string;
+    status?: string;
+    address?: string;
+    start_date?: string;
+    end_date?: string;
+    min_price?: string;
+    max_price?: string;
+    publish_date?: string;
+  }
+
+  const fetchEvents = async (paramsObj: EventFilterParams = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const params = query ? `?search=${encodeURIComponent(query)}` : '';
-      const res = await fetch(`/api/events/search${params}`);
+      // Build query string from paramsObj
+      const params = new URLSearchParams();
+      if (paramsObj.search) params.append('search', paramsObj.search);
+      if (paramsObj.format) params.append('format', paramsObj.format);
+      if (paramsObj.theme) params.append('theme', paramsObj.theme);
+      if (paramsObj.status) params.append('status', paramsObj.status);
+      if (paramsObj.address) params.append('address', paramsObj.address);
+      if (paramsObj.start_date) params.append('start_date', paramsObj.start_date);
+      if (paramsObj.end_date) params.append('end_date', paramsObj.end_date);
+      if (paramsObj.min_price) params.append('min_price', paramsObj.min_price);
+      if (paramsObj.max_price) params.append('max_price', paramsObj.max_price);
+      if (paramsObj.publish_date) params.append('publish_date', paramsObj.publish_date);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`/api/events/search${queryStr}`);
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
       setEvents(data.data || []);
@@ -49,9 +83,21 @@ const AllEventTypes: React.FC = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchEvents(search);
+    // Only send non-empty params
+    const params: EventFilterParams = {};
+    if (search) params.search = search;
+    if (format) params.format = format;
+    if (theme) params.theme = theme;
+    if (status) params.status = status;
+    if (address) params.address = address;
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    if (minPrice) params.min_price = minPrice;
+    if (maxPrice) params.max_price = maxPrice;
+    if (publishDate) params.publish_date = publishDate;
+    fetchEvents(params);
   };
 
   return (
@@ -63,28 +109,161 @@ const AllEventTypes: React.FC = () => {
             <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
           </span>
         </a>
-        <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center' }}>
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Search events"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ minWidth: 220 }}
-          />
-          <button className="search-btn" type="submit">
-            <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
-          </button>
-        </form>
+          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 24 }}>
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Search events"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ minWidth: 180, background: '#fff', border: '1px solid #ffe066', borderRight: 'none', borderRadius: '20px 0 0 20px', padding: '8px 12px', fontSize: 16, color: '#222' }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  fetchEvents({ search });
+                }
+              }}
+            />
+            <button
+              className="search-btn"
+              onClick={() => fetchEvents({ search })}
+              type="button"
+              style={{ borderRadius: '0 20px 20px 0', border: '1px solid #ffe066', borderLeft: 'none', width: 38, height: 38, marginLeft: 0, background: 'linear-gradient(90deg, #ffe066 60%, #ffd700 100%)', boxShadow: '0 1px 6px #ffe066', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+            >
+              <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
+            </button>
+          </div>
         <nav className="main-nav">
-          <a href="#">Browse Events</a>
-          <a href="#">Create Events</a>
+          <a href="/create-event">Create Event</a>
           <a href="#">My tickets</a>
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
           <Logout />
         </div>
       </header>
+      {/* Filter form below header */}
+      <div style={{
+        maxWidth: 1100,
+        margin: '32px auto 0 auto',
+        background: '#fffbe6',
+        borderRadius: 18,
+        boxShadow: '0 2px 12px #ffe066',
+        padding: '28px 32px 18px 32px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: 18,
+        position: 'relative',
+        top: 0,
+        zIndex: 2
+      }}>
+        <form onSubmit={handleFilter} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}>
+          <select
+            value={format}
+            onChange={e => setFormat(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          >
+            <option value="">Format</option>
+            <option value="Conference">Conference</option>
+            <option value="Lecture">Lecture</option>
+            <option value="Concert">Concert</option>
+            <option value="Workshop">Workshop</option>
+            <option value="Fest">Fest</option>
+          </select>
+          <select
+            value={theme}
+            onChange={e => setTheme(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          >
+            <option value="">Theme</option>
+            <option value="business">Business</option>
+            <option value="politics">Politics</option>
+            <option value="psychology">Psychology</option>
+            <option value="fan meeting">Fan meeting</option>
+          </select>
+          <select
+            value={status}
+            onChange={e => setStatus(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          >
+            <option value="">Status</option>
+            <option value="draft">Draft</option>
+            <option value="planned">Planned</option>
+            <option value="active">Active</option>
+            <option value="canceled">Canceled</option>
+            <option value="ended">Ended</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Location"
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            style={{ minWidth: 140, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <input
+            type="date"
+            placeholder="Start date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <input
+            type="date"
+            placeholder="End date"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <input
+            type="number"
+            placeholder="Min price"
+            value={minPrice}
+            min={0}
+            onChange={e => setMinPrice(e.target.value)}
+            style={{ minWidth: 100, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <input
+            type="number"
+            placeholder="Max price"
+            value={maxPrice}
+            min={0}
+            onChange={e => setMaxPrice(e.target.value)}
+            style={{ minWidth: 100, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <input
+            type="date"
+            placeholder="Publish date"
+            value={publishDate}
+            onChange={e => setPublishDate(e.target.value)}
+            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <button
+            className="filter-btn"
+            type="submit"
+            style={{
+              background: 'linear-gradient(90deg, #ffe066 60%, #ffd700 100%)',
+              border: 'none',
+              borderRadius: 8,
+              padding: '10px 26px',
+              marginLeft: 8,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 1px 4px #ffe066',
+              fontWeight: 700,
+              fontSize: 17,
+              color: '#222',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              transition: 'background 0.2s',
+            }}
+          >
+            <svg style={{ marginRight: 10 }} width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 5H17M5 10H15M8 15H12" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Filter
+          </button>
+        </form>
+      </div>
       <main className="main-content" style={{ minHeight: 600 }}>
         <h1 style={{ textAlign: 'center', margin: '32px 0 24px 0', fontSize: 36, fontWeight: 700, color: '#222' }}>All Events</h1>
         {loading && <div style={{ textAlign: 'center', margin: 32 }}>Loading...</div>}
@@ -110,10 +289,16 @@ const AllEventTypes: React.FC = () => {
                 position: 'relative',
               }}
             >
-              {event.poster_url && event.poster_url !== 'default' ? (
-                <img src={event.poster_url} alt={event.title} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
-              ) : (
-                <div style={{ width: '100%', height: 160, background: '#eee', borderRadius: 12, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 48 }}>🎫</div>
+              {event.poster_url && event.poster_url !== 'default' ? (() => {
+                let imgSrc = event.poster_url;
+                if (imgSrc.startsWith('/uploads')) {
+                  const apiUrl = import.meta.env.VITE_API_URL || '';
+                  const baseUrl = apiUrl.replace(/\/api$/, '');
+                  imgSrc = baseUrl + imgSrc;
+                }
+                return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />;
+              })() : (
+                <img src={"/default-event.png"} alt="default event" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginBottom: 12, background: '#eee' }} />
               )}
               <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 6 }}>{event.title}</div>
               {event.start_date && (
@@ -146,8 +331,7 @@ const AllEventTypes: React.FC = () => {
       </main>
       <footer className="home-footer">
         <div className="footer-row">
-          <a href="/all-event-types">All event types</a>
-          <a href="/faqs">FAQs</a>
+          <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>

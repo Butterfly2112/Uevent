@@ -19,6 +19,41 @@ interface Event {
 }
 
 const Home: React.FC = () => {
+      function handleSearch() {
+        if (!search.trim()) {
+          setEvents(allEvents);
+          return;
+        }
+        setEvents(
+          allEvents.filter(ev =>
+            ev.title.toLowerCase().includes(search.trim().toLowerCase())
+          )
+        );
+      }
+    const [search, setSearch] = useState('');
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const container = cardsContainerRef.current;
+    if (!container) return;
+    setCanScrollLeft(container.scrollLeft > 0);
+    setCanScrollRight(container.scrollLeft + container.offsetWidth < container.scrollWidth - 1);
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+    const container = cardsContainerRef.current;
+    if (!container) return;
+    container.addEventListener('scroll', updateScrollButtons);
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      container.removeEventListener('scroll', updateScrollButtons);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, [events]);
   const [isLoggedIn] = useState(() => !!localStorage.getItem('access_token'));
   const cardsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +67,6 @@ const Home: React.FC = () => {
       container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-  const [events, setEvents] = useState<Event[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -41,25 +75,21 @@ const Home: React.FC = () => {
     fetchEvents();
   }, []);
 
-  const fetchEvents = async (location = '') => {
+  const fetchEvents = async () => {
     setLoading(true);
     try {
-      let params = '';
-      if (location) {
-        params = `?location=${encodeURIComponent(location)}&limit=100`;
-      } else {
-        params = '?limit=100';
-      }
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/events/search${params}`);
+      const res = await fetch(`${apiUrl}/events/search?limit=100`);
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
+      setAllEvents(data.data || []);
       setEvents(data.data || []);
-      // Extract unique locations
+      // Extract unique locations from all events
       const locs = Array.from(new Set((data.data || []).map((e: Event) => e.address).filter(Boolean))) as string[];
       setLocations(locs);
     } catch {
       setEvents([]);
+      setAllEvents([]);
       setLocations([]);
     } finally {
       setLoading(false);
@@ -68,7 +98,11 @@ const Home: React.FC = () => {
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedLocation(e.target.value);
-    fetchEvents(e.target.value);
+    if (e.target.value) {
+      setEvents(allEvents.filter(ev => ev.address === e.target.value));
+    } else {
+      setEvents(allEvents);
+    }
   };
 
   return (
@@ -80,14 +114,33 @@ const Home: React.FC = () => {
             <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
           </span>
         </a>
-        <input className="search-input" type="text" placeholder="Search events" />
-        <button className="search-btn">
-          <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 24 }}>
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search events"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+            style={{ minWidth: 180, background: '#fff', border: '1px solid #ffe066', borderRight: 'none', borderRadius: '20px 0 0 20px', padding: '8px 12px', fontSize: 16, color: '#222' }}
+          />
+          <button
+            className="search-btn"
+            type="button"
+            onClick={handleSearch}
+            style={{ borderRadius: '0 20px 20px 0', border: '1px solid #ffe066', borderLeft: 'none', width: 38, height: 38, marginLeft: 0, background: 'linear-gradient(90deg, #ffe066 60%, #ffd700 100%)', boxShadow: '0 1px 6px #ffe066', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          >
+            <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
+          </button>
+        </div>
         <nav className="main-nav">
-          <a href="#">Browse Events</a>
-          <a href="#">Create Events</a>
-          <a href="#">My tickets</a>
+          <a href="/all-event-types">Browse Events</a>
+          <a href="/create-event">Create Event</a>
+          <a href="/profile">My tickets</a>
           {(() => {
             const profileStr = localStorage.getItem('profile');
             let company;
@@ -141,17 +194,28 @@ const Home: React.FC = () => {
 
 
       <main className="main-content" style={{ minHeight: 400 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 18px 0' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#222', margin: 0 }}>Events in {selectedLocation || '(location)'}</h2>
-          <div>
-            <label htmlFor="location-select" style={{ marginRight: 8, fontWeight: 500 }}>Location:</label>
-            <select id="location-select" value={selectedLocation} onChange={handleLocationChange} style={{ padding: 8, borderRadius: 8, fontSize: 16 }}>
-              <option value="">All</option>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 18px 66px' }}>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#222', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            Events in
+            <select id="location-select" value={selectedLocation} onChange={handleLocationChange} style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              fontSize: 18,
+              marginLeft: 8,
+              background: '#fff',
+              border: '1.5px solid #ffe066',
+              color: '#222',
+              boxShadow: '0 1px 4px #ffe066',
+              transition: 'border 0.2s, box-shadow 0.2s',
+              outline: 'none',
+              fontWeight: 500,
+            }}>
+              <option value="">All locations</option>
               {locations.map(loc => (
                 <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
-          </div>
+          </h2>
         </div>
         {loading ? (
           <div style={{ textAlign: 'center', margin: 32 }}>Loading...</div>
@@ -159,10 +223,10 @@ const Home: React.FC = () => {
           <div style={{ position: 'relative', width: '100%', maxWidth: 1200, margin: '0 auto' }}>
             <button
               aria-label="Scroll left"
-              onClick={() => scrollCards('left')}
+              onClick={() => canScrollLeft && scrollCards('left')}
               style={{
                 position: 'absolute',
-                left: -32,
+                left: -100,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
@@ -173,12 +237,14 @@ const Home: React.FC = () => {
                 height: 40,
                 padding: 0,
                 fontSize: 0,
-                cursor: 'pointer',
+                cursor: canScrollLeft ? 'pointer' : 'not-allowed',
                 boxShadow: 'none',
                 display: events.length > 0 ? 'block' : 'none',
+                filter: canScrollLeft ? 'none' : 'grayscale(1) brightness(1.7)',
               }}
+              title={canScrollLeft ? '' : 'No more events left'}
             >
-              <img src={arrowLeft} alt="Left" style={{ width: 32, height: 32 }} />
+              <img src={arrowLeft} alt="Left" style={{ width: 32, height: 32, pointerEvents: 'none', filter: canScrollLeft ? 'none' : 'grayscale(1) brightness(2.2)' }} />
             </button>
             <div
               ref={cardsContainerRef}
@@ -188,7 +254,6 @@ const Home: React.FC = () => {
                 gap: 24,
                 scrollBehavior: 'smooth',
                 padding: '8px 0',
-                margin: '0 32px',
                 minHeight: 220,
               }}
             >
@@ -204,7 +269,7 @@ const Home: React.FC = () => {
                     maxWidth: 320,
                     background: '#e6e6e6',
                     borderRadius: 16,
-                    boxShadow: '0 2px 8px #ffe066',
+                    boxShadow: '0 2px 8px #e0e0e0',
                     padding: 20,
                     display: 'flex',
                     flexDirection: 'column',
@@ -215,14 +280,19 @@ const Home: React.FC = () => {
                     position: 'relative',
                   }}
                 >
-                  {event.poster_url && event.poster_url !== 'default' && (() => {
-                    let imgSrc = event.poster_url;
-                    if (imgSrc.startsWith('/uploads')) {
-                      const apiUrl = import.meta.env.VITE_API_URL || '';
-                      const baseUrl = apiUrl.replace(/\/api$/, '');
-                      imgSrc = baseUrl + imgSrc;
+                  {(() => {
+                    let imgSrc = '';
+                    if (event.poster_url && event.poster_url !== 'default') {
+                      imgSrc = event.poster_url;
+                      if (imgSrc.startsWith('/uploads')) {
+                        const apiUrl = import.meta.env.VITE_API_URL || '';
+                        const baseUrl = apiUrl.replace(/\/api$/, '');
+                        imgSrc = baseUrl + imgSrc;
+                      }
+                    } else {
+                      imgSrc = '/default-event.png';
                     }
-                    return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />;
+                    return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12, background: '#f0f0f0' }} />;
                   })()}
                   <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: '#222' }}>{event.title}</div>
                   <div style={{ color: '#888', fontSize: 15, textAlign: 'center', marginBottom: 2 }}>
@@ -250,10 +320,10 @@ const Home: React.FC = () => {
             </div>
             <button
               aria-label="Scroll right"
-              onClick={() => scrollCards('right')}
+              onClick={() => canScrollRight && scrollCards('right')}
               style={{
                 position: 'absolute',
-                right: -32,
+                right: -100,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
@@ -264,12 +334,14 @@ const Home: React.FC = () => {
                 height: 40,
                 padding: 0,
                 fontSize: 0,
-                cursor: 'pointer',
+                cursor: canScrollRight ? 'pointer' : 'not-allowed',
                 boxShadow: 'none',
                 display: events.length > 0 ? 'block' : 'none',
+                filter: canScrollRight ? 'none' : 'grayscale(1) brightness(1.7)',
               }}
+              title={canScrollRight ? '' : 'No more events right'}
             >
-              <img src={arrowRight} alt="Right" style={{ width: 32, height: 32 }} />
+              <img src={arrowRight} alt="Right" style={{ width: 32, height: 32, pointerEvents: 'none', filter: canScrollRight ? 'none' : 'grayscale(1) brightness(2.2)' }} />
             </button>
           </div>
         )}
@@ -277,8 +349,7 @@ const Home: React.FC = () => {
 
       <footer className="home-footer">
         <div className="footer-row">
-          <a href="/all-event-types">All event types</a>
-          <a href="/faqs">FAQs</a>
+          <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>

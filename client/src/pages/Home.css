@@ -88,18 +88,19 @@ html, body {
   opacity: 1;
 }
 .search-btn {
-  background: #f7f48b;
+  background: linear-gradient(90deg, #ffe066 60%, #ffd700 100%);
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  margin-left: -44px;
-  margin-right: 8px;
+  width: 32px;
+  height: 32px;
+  margin-left: 4px;
+  margin-right: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 4px #e0e0c0;
+  box-shadow: 0 1px 6px #ffe066;
+  transition: background 0.2s;
 }
 
 .main-nav {

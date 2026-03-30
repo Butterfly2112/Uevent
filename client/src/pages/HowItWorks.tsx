@@ -14,6 +14,7 @@ const HowItWorks: React.FC = () => (
       <nav className="main-nav" style={{ display: 'flex', gap: 32, marginLeft: 40 }}>
         <a href="/">Home</a>
         <a href="/all-event-types">All Events</a>
+        <a href="/create-event">Create Event</a>
         <a href="/profile">Profile</a>
       </nav>
     </header>
@@ -34,8 +35,7 @@ const HowItWorks: React.FC = () => (
     </main>
     <footer className="home-footer" style={{ marginTop: 'auto' }}>
       <div className="footer-row">
-        <a href="/all-event-types">All event types</a>
-        <a href="/faqs">FAQs</a>
+        <a href="/all-event-types">All events</a>
         <a href="/how-it-works">How it works</a>
         <a href="/about-us">About us</a>
       </div>

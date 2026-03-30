@@ -237,7 +237,7 @@ export const EventRegistrationForm: React.FC<{
           style={{ resize: 'vertical', padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, minHeight: 80 }}
         />
       </div>
-      {/* Price, Ticket Limit, Address */}
+
       <div style={{display:'flex', gap:16, marginBottom: 16}}>
         <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
           <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Price <span style={{color:'red'}}>*</span></label>
@@ -325,13 +325,13 @@ export const EventRegistrationForm: React.FC<{
         <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
           <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Publish Date <span style={{color:'red'}}>*</span></label>
           <input
-            type="datetime-local"
-            name="publish_date"
-            value={form.publish_date}
-            disabled
-            required
-            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, background: '#f5f5f5', color: '#888' }}
-          />
+              type="datetime-local"
+              name="publish_date"
+              value={form.publish_date}
+              onChange={handleChange}
+              required
+              style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+            />
         </div>
         <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
           <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Start Date <span style={{color:'red'}}>*</span></label>

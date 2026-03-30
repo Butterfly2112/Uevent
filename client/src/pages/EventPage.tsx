@@ -132,6 +132,7 @@ const EventPage: React.FC = () => {
         <nav className="main-nav">
           <a href="/">Home</a>
           <a href="/all-event-types">All Events</a>
+          <a href="/create-event">Create Event</a>
           <a href="/profile">Profile</a>
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
@@ -190,17 +191,25 @@ const EventPage: React.FC = () => {
       <main className="main-content">
         <div className="event-page" style={{ maxWidth: 800, margin: '32px auto', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #ffe066', padding: 32 }}>
           <h1 style={{ fontSize: 32, marginBottom: 12, color: '#181818' }}>{event.title}</h1>
-          {event.poster_url && (
-            (() => {
-              let imgSrc = event.poster_url;
+                  {event.publish_date && (
+                    <div style={{ color: '#888', fontSize: 15, marginBottom: 8 }}>
+                      <span style={{ fontWeight: 500 }}>Publish date:</span> {new Date(event.publish_date).toLocaleDateString()} {new Date(event.publish_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+          {(() => {
+            let imgSrc = '';
+            if (event.poster_url && event.poster_url !== 'default') {
+              imgSrc = event.poster_url;
               if (imgSrc.startsWith('/uploads')) {
                 const apiUrl = import.meta.env.VITE_API_URL || '';
                 const baseUrl = apiUrl.replace(/\/api$/, '');
                 imgSrc = baseUrl + imgSrc;
               }
-              return <img src={imgSrc} alt={event.title} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12, marginBottom: 18 }} />;
-            })()
-          )}
+            } else {
+              imgSrc = '/default-event.png';
+            }
+            return <img src={imgSrc} alt={event.title} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12, marginBottom: 18 }} />;
+          })()}
           <div style={{ color: '#888', fontSize: 16, marginBottom: 8 }}>
             {event.format && <span>Format: {event.format} | </span>}
             {event.theme && <span>Theme: {event.theme} | </span>}
@@ -242,13 +251,11 @@ const EventPage: React.FC = () => {
           )}
         </div>
 
-
       </main>
 
       <footer className="home-footer">
         <div className="footer-row">
-          <a href="/all-event-types">All event types</a>
-          <a href="/faqs">FAQs</a>
+          <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>

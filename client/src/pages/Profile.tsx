@@ -104,7 +104,7 @@ const Profile: React.FC = () => {
         </button>
         <nav className="main-nav">
           <a href="#">Browse Events</a>
-          <a href="#">Create Events</a>
+          <a href="/create-event">Create Event</a>
           <a href="#">My tickets</a>
           {isLoggedIn && user.company && user.company.id ? (
             <a href={`/company/${user.company.id}`}>View Company{user.company.name ? `: ${user.company.name}` : ''}</a>
@@ -161,8 +161,7 @@ const Profile: React.FC = () => {
 
       <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
         <div className="footer-row">
-          <a href="/all-event-types">All event types</a>
-          <a href="/faqs">FAQs</a>
+          <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>

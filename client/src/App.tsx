@@ -12,6 +12,7 @@ import AboutUs from './pages/AboutUs';
 import RegisterCompany from './pages/RegisterCompany';
 import CompanyProfile from './pages/CompanyProfile';
 import EventPage from './pages/EventPage';
+import CreateEventPage from './pages/CreateEventPage';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="/register-company" element={<RegisterCompany />} />
         <Route path="/company/:id" element={<CompanyProfileWrapper />} />
         <Route path="/event/:id" element={<EventPage />} />
+        <Route path="/create-event" element={<CreateEventPage />} />
       </Routes>
     </BrowserRouter>
   );

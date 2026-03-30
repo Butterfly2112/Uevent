@@ -12,6 +12,7 @@ interface Event {
   end_date?: string;
   poster_url?: string;
   status?: string;
+  publish_date?: string;
 }
 
 interface News {
@@ -218,6 +219,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         <nav className="main-nav">
           <a href="/">Home</a>
           <a href="/all-event-types">All Events</a>
+          <a href="/create-event">Create Event</a>
           <a href="/profile">Profile</a>
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
@@ -451,19 +453,25 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             {company.events && company.events.length > 0 ? (
               company.events.map(event => (
                 <div key={event.id} style={{ minWidth: 220, maxWidth: 260, background: '#fffbe6', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  {event.poster_url && event.poster_url !== 'default' ? (
-                    (() => {
-                      let imgSrc = event.poster_url;
+                  {event.publish_date && (
+                    <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>
+                      <span style={{ fontWeight: 500 }}>Publish:</span> {new Date(event.publish_date).toLocaleDateString()} {new Date(event.publish_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+                  {(() => {
+                    let imgSrc = '';
+                    if (event.poster_url && event.poster_url !== 'default') {
+                      imgSrc = event.poster_url;
                       if (imgSrc.startsWith('/uploads')) {
                         const apiUrl = import.meta.env.VITE_API_URL || '';
                         const baseUrl = apiUrl.replace(/\/api$/, '');
                         imgSrc = baseUrl + imgSrc;
                       }
-                      return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />;
-                    })()
-                  ) : (
-                    <div style={{ width: '100%', height: 120, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32 }}>🎫</div>
-                  )}
+                    } else {
+                      imgSrc = '/default-event.png';
+                    }
+                    return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8, background: '#f0f0f0' }} />;
+                  })()}
                   <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 4 }}>{event.title}</div>
                   {event.start_date && (
                     <div style={{ color: '#888', fontSize: 14 }}>Start: {new Date(event.start_date).toLocaleDateString()}</div>
@@ -581,8 +589,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
 
       <footer className="home-footer" style={{ marginTop: 'auto' }}>
         <div className="footer-row">
-          <a href="/all-event-types">All event types</a>
-          <a href="/faqs">FAQs</a>
+          <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
