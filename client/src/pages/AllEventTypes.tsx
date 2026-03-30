@@ -16,6 +16,11 @@ interface Event {
   theme?: string;
   status?: string;
   address?: string;
+  companyId?: number | null;
+  company?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 const AllEventTypes: React.FC = () => {
@@ -357,26 +362,30 @@ const AllEventTypes: React.FC = () => {
               {event.address && (
                 <div style={{ color: '#999', fontSize: 13, marginTop: 2 }}>Location: {event.address}</div>
               )}
-              {/* Delete button for admin/owner */}
-              {canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || user?.id) && (
-                <button
-                  onClick={() => handleDeleteEvent(event.id)}
-                  style={{
-                    marginTop: 12,
-                    background: '#ff4d4f',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 18px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    boxShadow: '0 1px 4px #ff4d4f44',
-                  }}
-                  title="Delete event"
-                >
-                  Delete
-                </button>
+              {/* Company deleted label or delete button */}
+              {(!event.company || event.companyId === null) ? (
+                <div style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 12 }}>This company was deleted</div>
+              ) : (
+                canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || user?.id) && (
+                  <button
+                    onClick={() => handleDeleteEvent(event.id)}
+                    style={{
+                      marginTop: 12,
+                      background: '#ff4d4f',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '8px 18px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      boxShadow: '0 1px 4px #ff4d4f44',
+                    }}
+                    title="Delete event"
+                  >
+                    Delete
+                  </button>
+                )
               )}
               {/* Link to event page */}
               <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
