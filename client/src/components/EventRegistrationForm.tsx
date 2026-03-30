@@ -1,0 +1,408 @@
+import React, { useState, useRef, useEffect } from 'react';
+
+export interface EventFormData {
+  notificate_owner?: boolean;
+  title: string;
+  description: string;
+  price: number;
+  ticket_limit?: number;
+  address?: string;
+  poster_url?: string | File;
+  redirect_url?: string;
+  start_date: string;
+  end_date: string;
+  publish_date: string;
+  status?: string;
+  format?: string;
+  theme?: string;
+  visitor_visibility: 'everybody' | 'attendees_only';
+}
+
+const statusOptions = [
+  { value: '', label: 'Select status' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'planned', label: 'Planned' },
+  { value: 'active', label: 'Active' },
+  { value: 'canceled', label: 'Canceled' },
+  { value: 'ended', label: 'Ended' },
+];
+
+const formatOptions = [
+  { value: '', label: 'Select format' },
+  { value: 'Conference', label: 'Conference' },
+  { value: 'Lecture', label: 'Lecture' },
+  { value: 'Concert', label: 'Concert' },
+  { value: 'Workshop', label: 'Workshop' },
+  { value: 'Fest', label: 'Fest' },
+];
+
+const themeOptions = [
+  { value: '', label: 'Select theme' },
+  { value: 'business', label: 'Business' },
+  { value: 'politics', label: 'Politics' },
+  { value: 'psychology', label: 'Psychology' },
+  { value: 'fan meeting', label: 'Fan Meeting' },
+];
+
+const visitorVisibilityOptions = [
+  { value: 'everybody', label: 'Everybody' },
+  { value: 'attendees_only', label: 'Attendees Only' },
+];
+
+export const EventRegistrationForm: React.FC<{
+  onSubmit: (data: EventFormData) => void;
+  loading?: boolean;
+  error?: string;
+  onClose?: () => void;
+}> = ({ onSubmit, loading, error, onClose }) => {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+  const getNowDatetimeLocal = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const [form, setForm] = useState<EventFormData>({
+    title: '',
+    description: '',
+    price: 0,
+    start_date: '',
+    end_date: '',
+    publish_date: getNowDatetimeLocal(),
+    visitor_visibility: 'everybody',
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      if (e.target instanceof HTMLInputElement) {
+        const checked = e.target.checked;
+        setForm((prev) => ({
+          ...prev,
+          [name]: checked,
+        }));
+      }
+    } else if (type === 'file') {
+      const fileInput = e.target as HTMLInputElement;
+      if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        setForm((prev) => ({ ...prev, poster_url: file }));
+        const reader = new FileReader();
+        reader.onloadend = () => setPosterPreview(reader.result as string);
+        reader.readAsDataURL(file);
+      } else {
+        setForm((prev) => ({ ...prev, poster_url: undefined }));
+        setPosterPreview(undefined);
+      }
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const [posterPreview, setPosterPreview] = useState<string | undefined>(undefined);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Ensure ticket_limit is number or undefined
+    const submitForm = { ...form };
+    if (typeof submitForm.ticket_limit === 'string') {
+      if (submitForm.ticket_limit === '') {
+        delete submitForm.ticket_limit;
+      } else {
+        const parsed = parseInt(submitForm.ticket_limit, 10);
+        submitForm.ticket_limit = isNaN(parsed) ? undefined : parsed;
+      }
+    } else if (submitForm.ticket_limit === undefined) {
+      delete submitForm.ticket_limit;
+    }
+
+    // Удаляем пустые или undefined необязательные поля
+    const cleanedForm: Record<string, unknown> = {};
+    Object.entries(submitForm).forEach(([key, value]) => {
+      // Список обязательных полей
+      const requiredFields = [
+        'title',
+        'description',
+        'price',
+        'start_date',
+        'end_date',
+        'publish_date',
+        'visitor_visibility',
+      ];
+      if (
+        requiredFields.includes(key) ||
+        (value !== undefined && value !== null && value !== '')
+      ) {
+        if (key === 'ticket_limit' && value !== undefined && value !== null && value !== '') {
+          cleanedForm[key] = typeof value === 'number' ? value : Number(value);
+        } else {
+          cleanedForm[key] = value;
+        }
+      }
+    });
+    onSubmit(cleanedForm as unknown as EventFormData);
+  };
+
+  return (
+    <div style={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      minHeight: '80vh',
+      padding: '32px 0',
+      background: 'transparent',
+    }}>
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        style={{
+          background: '#fff',
+          borderRadius: 14,
+          boxShadow: '0 2px 16px #ffe066',
+          padding: 48,
+          width: '100%',
+          maxWidth: 'calc(100vw - 120px)',
+          border: 'none',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#ffe066 #f9f9ed',
+          position: 'relative',
+        }}
+      >
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 14,
+              background: 'none',
+              border: 'none',
+              fontSize: 28,
+              fontWeight: 700,
+              cursor: 'pointer',
+              color: '#888',
+              zIndex: 2
+            }}
+            aria-label="Закрыть форму"
+          >
+            &#10006;
+          </button>
+        )}
+      <h2 style={{margin: 0, fontSize: 28, color: '#222', marginBottom: 18}}>Register New Event</h2>
+      {error && <div style={{ color: 'red', fontSize: 17, marginBottom: 10 }}>{error}</div>}
+      {/* Title */}
+      <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom: 12}}>
+        <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Title <span style={{color:'red'}}>*</span></label>
+        <input
+          type="text"
+          name="title"
+          value={form.title}
+          onChange={handleChange}
+          minLength={3}
+          maxLength={50}
+          required
+          placeholder="Event title"
+          style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+        />
+      </div>
+      {/* Description */}
+      <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom: 18}}>
+        <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Description <span style={{color:'red'}}>*</span></label>
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          minLength={3}
+          maxLength={500}
+          required
+          placeholder="Event description"
+          rows={4}
+          style={{ resize: 'vertical', padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, minHeight: 80 }}
+        />
+      </div>
+      {/* Price, Ticket Limit, Address */}
+      <div style={{display:'flex', gap:16, marginBottom: 16}}>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Price <span style={{color:'red'}}>*</span></label>
+          <input
+            type="number"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            min={0}
+            required
+            placeholder="Price"
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Ticket Limit</label>
+          <input
+            type="number"
+            name="ticket_limit"
+            value={form.ticket_limit || ''}
+            onChange={handleChange}
+            min={1}
+            placeholder="Ticket Limit"
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+        <div style={{flex:2, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Address</label>
+          <input
+            type="text"
+            name="address"
+            value={form.address || ''}
+            onChange={handleChange}
+            placeholder="Address"
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+      </div>
+      {/* Format, Visitor Visibility */}
+      <div style={{display:'flex', gap:16, marginBottom: 16}}>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Format</label>
+          <select name="format" value={form.format || ''} onChange={handleChange} style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}>
+            {formatOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Visitor Visibility <span style={{color:'red'}}>*</span></label>
+          <select
+            name="visitor_visibility"
+            value={form.visitor_visibility}
+            onChange={handleChange}
+            required
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          >
+            {visitorVisibilityOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {/* Theme, Status */}
+      <div style={{display:'flex', gap:16, marginBottom: 16}}>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Theme</label>
+          <select name="theme" value={form.theme || ''} onChange={handleChange} style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}>
+            {themeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Status</label>
+          <select name="status" value={form.status || ''} onChange={handleChange} style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}>
+            {statusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {/* Publish Date, Start Date, End Date */}
+      <div style={{display:'flex', gap:16, marginBottom: 16}}>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Publish Date <span style={{color:'red'}}>*</span></label>
+          <input
+            type="datetime-local"
+            name="publish_date"
+            value={form.publish_date}
+            disabled
+            required
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, background: '#f5f5f5', color: '#888' }}
+          />
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Start Date <span style={{color:'red'}}>*</span></label>
+          <input
+            type="datetime-local"
+            name="start_date"
+            value={form.start_date}
+            onChange={handleChange}
+            required
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>End Date <span style={{color:'red'}}>*</span></label>
+          <input
+            type="datetime-local"
+            name="end_date"
+            value={form.end_date}
+            onChange={handleChange}
+            required
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+      </div>
+      {/* Redirect URL, Poster Image */}
+      <div style={{display:'flex', gap:16, marginBottom: 18}}>
+        <div style={{flex:2, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Redirect URL</label>
+          <input
+            type="text"
+            name="redirect_url"
+            value={form.redirect_url || ''}
+            onChange={handleChange}
+            placeholder="Redirect URL"
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', gap:6}}>
+          <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Poster Image</label>
+          <input
+            type="file"
+            name="poster_url"
+            accept="image/*"
+            onChange={handleChange}
+            style={{ padding: 8, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+          />
+          {posterPreview && (
+            <div style={{ marginTop: 8 }}>
+              <img src={posterPreview} alt="Preview" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 12, boxShadow: '0 2px 8px #ffe066' }} />
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Notify owner */}
+      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom: 18}}>
+        <input
+          type="checkbox"
+          name="notificate_owner"
+          checked={!!form.notificate_owner}
+          onChange={handleChange}
+          style={{width:18, height:18}}
+        />
+        <span style={{fontSize:16}}>Notify me about new attendees</span>
+      </div>
+      {/* Submit button */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10 }}>
+        <button type="submit" disabled={loading || !form.title.trim() || !form.description.trim()} style={{ background: '#ffe066', border: 'none', borderRadius: 8, padding: '12px 36px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontSize: 18 }}>
+          {loading ? 'Registering...' : 'Register Event'}
+        </button>
+      </div>
+      </form>
+    </div>
+  );
+};

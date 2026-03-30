@@ -60,6 +60,7 @@ export class CreateEventDto {
   })
   @IsNumber()
   @IsOptional()
+  @Type(() => Number)
   ticket_limit?: number;
 
   @ApiProperty({

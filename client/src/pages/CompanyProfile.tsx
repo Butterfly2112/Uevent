@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { EventRegistrationForm } from '../components/EventRegistrationForm';
+import type { EventFormData } from '../components/EventRegistrationForm';
 import Logout from '../components/Logout';
 import './Profile.css';
 import planetIcon from '../assets/planet.svg';
@@ -39,7 +41,69 @@ interface Company {
 
 
 const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
-  // State for modal news view
+    // State for event registration modal
+    const [showEventForm, setShowEventForm] = useState(false);
+    const [eventFormLoading, setEventFormLoading] = useState(false);
+    const [eventFormError, setEventFormError] = useState('');
+    // Event registration handler
+    const handleEventRegister = async (data: EventFormData) => {
+      setEventFormLoading(true);
+      setEventFormError('');
+      try {
+        const token = localStorage.getItem('access_token');
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        let body: BodyInit;
+        const headers: Record<string, string> = {};
+        if (data.poster_url && data.poster_url instanceof File) {
+          const formData = new FormData();
+          Object.entries(data).forEach(([key, value]) => {
+            if (key === 'poster_url' && value instanceof File) {
+              formData.append('file', value);
+            } else if (value !== undefined && value !== null) {
+              if (key === 'ticket_limit') {
+                // Always append as number string, even if value is string
+                const num = typeof value === 'number' ? value : Number(value);
+                if (!isNaN(num)) {
+                  formData.append(key, num.toString());
+                }
+              } else {
+                formData.append(key, String(value));
+              }
+            }
+          });
+          // Debug: log all FormData entries (remove before production)
+          // console.log('FormData being sent:');
+          // for (const [key, value] of formData.entries()) {
+          //   console.log(key, value);
+          // }
+          body = formData;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } else {
+          body = JSON.stringify(data);
+          headers['Content-Type'] = 'application/json';
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/events/${id}`, {
+          method: 'POST',
+          headers,
+          body
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err || 'Error registering event');
+        }
+        setShowEventForm(false);
+        window.location.reload();
+      } catch (e: unknown) {
+        if (e && typeof e === 'object' && 'message' in e) {
+          setEventFormError((e as { message?: string }).message || 'Error registering event');
+        } else {
+          setEventFormError('Error registering event');
+        }
+      } finally {
+        setEventFormLoading(false);
+      }
+    };
   const [openNews, setOpenNews] = useState<News | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +160,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         window.location.reload();
       } catch (e: unknown) {
         if (e && typeof e === 'object' && 'message' in e) {
-          setNewsMessage('Error: ' + (e as { message?: string }).message);
+            setNewsMessage('Error: ' + (e as { message?: string }).message || 'Unknown error occurred');
         } else {
           setNewsMessage('Error: Failed to add news');
         }
@@ -180,7 +244,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                 }
                 return <img src={imgSrc} alt={company.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
               })()
-            : <span role="img" aria-label="company">🏢</span>
+            : <img src="/default-company-avatar.png" alt="Default company avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#eee' }} />
           }
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0 }}>
@@ -190,142 +254,235 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             <div style={{ color: '#888', fontSize: 18 }}><b>Location:</b> {company.location || <span style={{color:'#bbb'}}>Not specified</span>}</div>
           </div>
           {isOwner && (
-            <button onClick={() => setShowNewsForm(true)} style={{
-              background: '#ffe066',
-              border: '1px solid #bfa800',
-              color: '#222',
-              borderRadius: 8,
-              padding: '10px 22px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: 16,
-              marginLeft: 32,
-              marginRight: 32,
-              height: 44,
-              alignSelf: 'center',
-              boxShadow: '0 2px 8px #ffe066',
-              whiteSpace: 'nowrap'
-            }}>
-              Add News
-            </button>
+            <>
+              <button onClick={() => setShowNewsForm(true)} style={{
+                background: '#ffe066',
+                border: '1px solid #bfa800',
+                color: '#222',
+                borderRadius: 8,
+                padding: '10px 22px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: 16,
+                marginLeft: 32,
+                marginRight: 12,
+                height: 44,
+                alignSelf: 'center',
+                boxShadow: '0 2px 8px #ffe066',
+                whiteSpace: 'nowrap'
+              }}>
+                Add News
+              </button>
+              <button onClick={() => setShowEventForm(true)} style={{
+                background: '#ffe066',
+                border: '1px solid #bfa800',
+                color: '#222',
+                borderRadius: 8,
+                padding: '10px 22px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: 16,
+                marginLeft: 0,
+                marginRight: 32,
+                height: 44,
+                alignSelf: 'center',
+                boxShadow: '0 2px 8px #ffe066',
+                whiteSpace: 'nowrap'
+              }}>
+                Add Event
+              </button>
+            </>
           )}
+              {/* Event Registration Modal */}
+              {isOwner && showEventForm && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  background: 'rgba(0,0,0,0.35)',
+                  zIndex: 2100,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                  onClick={() => setShowEventForm(false)}
+                >
+                  <div style={{ background: '#fffde7', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 32, width: '80vw', maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }} onClick={e => e.stopPropagation()}>
+                    <button type="button" onClick={() => setShowEventForm(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&#10006;</button>
+                    <EventRegistrationForm 
+                      onSubmit={handleEventRegister} 
+                      loading={eventFormLoading} 
+                      error={eventFormError} 
+                      onClose={() => setShowEventForm(false)} 
+                    />
+                  </div>
+                </div>
+              )}
         </div>
       </div>
 
-      <div style={{ display: 'flex', width: '100%', margin: '32px 0 0 0', justifyContent: 'flex-start' }}>
+      <div style={{ width: '100vw', margin: '32px 0 0 0', boxSizing: 'border-box', display: 'flex', justifyContent: 'center' }}>
         <div style={{
-          minWidth: 280,
-          maxWidth: 340,
+          width: '100%',
           background: '#f7f48b',
           borderRadius: 18,
           boxShadow: '0 4px 24px #ffe066',
           padding: '32px 28px 28px 32px',
-          marginLeft: 40,
-          marginRight: 32,
+          marginLeft: '3cm',
+          marginRight: '3cm',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
           borderLeft: '8px solid #ffe066',
           position: 'relative',
+          boxSizing: 'border-box',
         }}>
           <div style={{ fontWeight: 700, fontSize: 22, color: '#222', marginBottom: 10, letterSpacing: 0.5 }}>About company</div>
-          <div style={{ fontSize: 17, color: '#444', whiteSpace: 'pre-line', lineHeight: 1.6 }}>{company.description}</div>
+          <div style={{
+            fontSize: 17,
+            color: '#444',
+            whiteSpace: 'pre-line',
+            lineHeight: 1.6,
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            maxWidth: '100%',
+          }}>{company.description}</div>
         </div>
       </div>
- <>
-      {company.news && company.news.length > 0 && (
-        <>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          gap: 32,
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          width: '100%',
+          maxWidth: 1200,
+          margin: '40px auto 0 auto',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* NEWS COLUMN */}
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 480 }}>
+          <h3 style={{ fontSize: 26, color: '#222', fontWeight: 700, letterSpacing: 0.5, marginBottom: 18 }}>Company News</h3>
           <div style={{
-            maxWidth: 900,
-            margin: '40px auto 0 auto',
-            width: '100%',
-            textAlign: 'left',
-            paddingLeft: 12,
-          }}>
-            <h3 style={{ fontSize: 26, color: '#222', marginLeft: -260, fontWeight: 700, letterSpacing: 0.5 }}>Company News</h3>
-          </div>
-          <div style={{
-            margin: '12px auto 0 40px',
-            maxWidth: 900,
-            width: '100%',
             background: 'rgba(120,120,120,0.06)',
             borderRadius: 12,
             boxShadow: '0 1px 4px #bbb',
             padding: '24px 0',
             display: 'flex',
-            flexWrap: 'wrap',
-            gap: 24,
-            justifyContent: 'center',
-            position: 'relative',
-            flexDirection: 'row',
-            alignItems: 'flex-start',
+            flexDirection: 'column',
+            gap: 18,
+            alignItems: 'center',
+            minHeight: 180,
           }}>
-            {/* News cards */}
-            {(
-              showAllNews
-                ? [...company.news]
-                : [...company.news].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 2)
-            )
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              .map((news) => (
-                <div key={news.id} onClick={() => setOpenNews(news)} style={{
-                  cursor: 'pointer',
-                  width: 280,
-                  background: '#fff',
-                  borderRadius: 10,
-                  boxShadow: '0 1px 8px #ffe066',
-                  padding: 18,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  alignItems: 'flex-start',
-                  transition: 'box-shadow 0.2s',
-                  overflow: 'hidden',
-                  minHeight: 160,
-                  maxHeight: 160,
-                  height: 160,
-                  justifyContent: 'space-between',
-                }}>
-                  <div style={{ fontWeight: 600, fontSize: 18, color: '#222', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.title}</div>
-                  <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>{new Date(news.created_at).toLocaleDateString()}</div>
-                  <div style={{ color: '#444', fontSize: 15, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.content.slice(0, 60)}{news.content.length > 60 ? '...' : ''}</div>
-                  {news.images_url && news.images_url.length > 0 && (
-                    <img src={(news.images_url[0].startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + news.images_url[0] : news.images_url[0])} alt="news" style={{ maxWidth: 70, maxHeight: 70, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', marginTop: 2 }} />
-                  )}
-                </div>
-              ))}
-            {/* View all news button inside gray block */}
-            {company.news.length > 2 && (
-              <div style={{
-                position: 'absolute',
-                right: -10,
-                bottom: 16,
-                zIndex: 2,
-              }}>
-                <button
-                  onClick={() => setShowAllNews((prev) => !prev)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#666',
-                    borderRadius: 8,
-                    padding: '8px 24px',
-                    fontWeight: 600,
+            {company.news && company.news.length > 0 ? (
+              (showAllNews ? [...company.news] : [...company.news].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 2))
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .map((news) => (
+                  <div key={news.id} onClick={() => setOpenNews(news)} style={{
                     cursor: 'pointer',
-                    fontSize: 16,
-                    boxShadow: 'none',
-                    transition: 'color 0.2s',
-                  }}
-                  onMouseOver={e => (e.currentTarget.style.color = '#222')}
-                  onMouseOut={e => (e.currentTarget.style.color = '#666')}
-                >
-                  {showAllNews ? 'Hide news' : 'View all news'}
-                </button>
-              </div>
+                    width: '100%',
+                    maxWidth: 400,
+                    background: '#fff',
+                    borderRadius: 10,
+                    boxShadow: '0 1px 8px #ffe066',
+                    padding: 18,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    alignItems: 'flex-start',
+                    transition: 'box-shadow 0.2s',
+                    overflow: 'hidden',
+                    minHeight: 120,
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ fontWeight: 600, fontSize: 18, color: '#222', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.title}</div>
+                    <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>{new Date(news.created_at).toLocaleDateString()}</div>
+                    <div style={{ color: '#444', fontSize: 15, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.content.slice(0, 60)}{news.content.length > 60 ? '...' : ''}</div>
+                    {news.images_url && news.images_url.length > 0 && (
+                      <img src={(news.images_url[0].startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + news.images_url[0] : news.images_url[0])} alt="news" style={{ maxWidth: 70, maxHeight: 70, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', marginTop: 2 }} />
+                    )}
+                  </div>
+                ))
+            ) : (
+              <div style={{ color: '#aaa', fontSize: 16, textAlign: 'center', margin: 24 }}>No news yet</div>
+            )}
+            {company.news && company.news.length > 2 && (
+              <button
+                onClick={() => setShowAllNews((prev) => !prev)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#666',
+                  borderRadius: 8,
+                  padding: '8px 24px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  boxShadow: 'none',
+                  transition: 'color 0.2s',
+                  marginTop: 10,
+                }}
+                onMouseOver={e => (e.currentTarget.style.color = '#222')}
+                onMouseOut={e => (e.currentTarget.style.color = '#666')}
+              >
+                {showAllNews ? 'Hide news' : 'View all news'}
+              </button>
             )}
           </div>
-        </>
-      )}
+        </div>
+        {/* EVENTS COLUMN */}
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 600 }}>
+          <h3 style={{ fontSize: 26, color: '#222', fontWeight: 700, letterSpacing: 0.5, marginBottom: 18 }}>Company Events</h3>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px #ffe066',
+            padding: '24px 0',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 18,
+            justifyContent: 'center',
+            minHeight: 180,
+          }}>
+            {company.events && company.events.length > 0 ? (
+              company.events.map(event => (
+                <div key={event.id} style={{ minWidth: 220, maxWidth: 260, background: '#fffbe6', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {event.poster_url && event.poster_url !== 'default' ? (
+                    (() => {
+                      let imgSrc = event.poster_url;
+                      if (imgSrc.startsWith('/uploads')) {
+                        const apiUrl = import.meta.env.VITE_API_URL || '';
+                        const baseUrl = apiUrl.replace(/\/api$/, '');
+                        imgSrc = baseUrl + imgSrc;
+                      }
+                      return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />;
+                    })()
+                  ) : (
+                    <div style={{ width: '100%', height: 120, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32 }}>🎫</div>
+                  )}
+                  <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 4 }}>{event.title}</div>
+                  {event.start_date && (
+                    <div style={{ color: '#888', fontSize: 14 }}>Start: {new Date(event.start_date).toLocaleDateString()}</div>
+                  )}
+                  {event.end_date && (
+                    <div style={{ color: '#888', fontSize: 14 }}>End: {new Date(event.end_date).toLocaleDateString()}</div>
+                  )}
+                  {event.status && (
+                    <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Status: {event.status}</div>
+                  )}
+                  <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
+                </div>
+              ))
+            ) : (
+              <div style={{ color: '#aaa', fontSize: 16, textAlign: 'center', margin: 24 }}>No events yet</div>
+            )}
+          </div>
+        </div>
+      </div>
       {openNews && (
         <div
           style={{
@@ -383,9 +540,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
           </div>
         </div>
       )}
-    </>
-
-      {isOwner && showNewsForm && (
+    {isOwner && showNewsForm && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -424,36 +579,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         </div>
       )}
 
-      {/* Company Events List */}
-      {company.events && company.events.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 800, margin: '32px auto 0 auto', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #ffe066', padding: '32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <h3 style={{ margin: 0, fontSize: 26, color: '#222' }}>Company Events</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-            {company.events.map(event => (
-              <div key={event.id} style={{ minWidth: 220, maxWidth: 260, background: '#fffbe6', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {event.poster_url && event.poster_url !== 'default' ? (
-                  <img src={event.poster_url} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                ) : (
-                  <div style={{ width: '100%', height: 120, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32 }}>🎫</div>
-                )}
-                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 4 }}>{event.title}</div>
-                {event.start_date && (
-                  <div style={{ color: '#888', fontSize: 14 }}>Start: {new Date(event.start_date).toLocaleDateString()}</div>
-                )}
-                {event.end_date && (
-                  <div style={{ color: '#888', fontSize: 14 }}>End: {new Date(event.end_date).toLocaleDateString()}</div>
-                )}
-                {event.status && (
-                  <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Status: {event.status}</div>
-                )}
-                <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <footer className="home-footer">
+      <footer className="home-footer" style={{ marginTop: 'auto' }}>
         <div className="footer-row">
           <a href="/all-event-types">All event types</a>
           <a href="/faqs">FAQs</a>

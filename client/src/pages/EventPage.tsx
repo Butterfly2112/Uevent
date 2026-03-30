@@ -1,0 +1,261 @@
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import Logout from '../components/Logout';
+import planetIcon from '../assets/planet.svg';
+
+interface Ticket {
+  id: number;
+  user: {
+    id: number;
+    login: string;
+    username: string;
+    avatar_url?: string;
+  };
+  price_paid?: number;
+  status?: string;
+}
+
+
+
+interface PromoCode {
+  id: number;
+  code: string;
+  discount_percentage: number;
+  expires_at: string;
+}
+
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  ticket_limit?: number;
+  address?: string;
+  poster_url?: string;
+  redirect_url?: string;
+  start_date: string;
+  end_date: string;
+  publish_date: string;
+  status?: string;
+  format?: string;
+  theme?: string;
+  visitor_visibility: 'everybody' | 'attendees_only';
+  company?: {
+    id: number;
+    name: string;
+    picture_url?: string;
+  };
+  tickets?: Ticket[];
+  // comments?: Comment[];
+  promo_codes?: PromoCode[];
+}
+
+const EventPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  // const [commentContent, setCommentContent] = useState('');
+  // const [commentSubmitting, setCommentSubmitting] = useState(false);
+  // const [commentError, setCommentError] = useState('');
+  // const [commentSuccess, setCommentSuccess] = useState('');
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState('');
+  const [buySuccess, setBuySuccess] = useState('');
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${apiUrl}/events/${id}`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setEvent(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Loading error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvent();
+  }, [id]);
+
+  if (loading) return <div style={{padding: 32}}>Loading event...</div>;
+  if (error) return <div style={{padding: 32, color: 'red'}}>{error}</div>;
+  if (!event) return <div style={{padding: 32}}>Event not found</div>;
+
+  const isLoggedIn = !!localStorage.getItem('access_token');
+
+
+
+
+  // Buy ticket
+  const handleBuyTicket = async () => {
+    setBuying(true);
+    setBuyError('');
+    setBuySuccess('');
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiUrl}/tickets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isLoggedIn ? { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } : {}),
+        },
+        body: JSON.stringify({ event_id: id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setBuySuccess('Ticket purchased successfully!');
+      // Update tickets list
+      if (event) {
+        const newTicket = await res.json();
+        setEvent({ ...event, tickets: event.tickets ? [...event.tickets, newTicket] : [newTicket] });
+      }
+    } catch (e) {
+      setBuyError(e instanceof Error ? e.message : 'Purchase failed');
+    } finally {
+      setBuying(false);
+    }
+  };
+
+  return (
+    <div className="home-root">
+      <header className="home-header">
+        <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
+          <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
+          <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
+            <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
+          </span>
+        </a>
+        <nav className="main-nav">
+          <a href="/">Home</a>
+          <a href="/all-event-types">All Events</a>
+          <a href="/profile">Profile</a>
+        </nav>
+        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
+          {isLoggedIn ? (
+            <Logout />
+          ) : (
+            <>
+              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
+              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
+            </>
+          )}
+        </div>
+
+        {/* Tickets block */}
+        {event.tickets && event.tickets.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{ fontSize: 22, marginBottom: 10 }}>Attendees</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
+              {event.tickets.map(ticket => (
+                <div key={ticket.id} style={{ background: '#f7f7f7', borderRadius: 10, padding: 12, minWidth: 180, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 4px #ffe06655' }}>
+                  {ticket.user.avatar_url ? (
+                    <img src={ticket.user.avatar_url} alt={ticket.user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                  ) : (
+                    <span style={{ fontSize: 28 }}>👤</span>
+                  )}
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{ticket.user.username || ticket.user.login}</div>
+                    {ticket.price_paid !== undefined && <div style={{ color: '#888', fontSize: 13 }}>Paid: {ticket.price_paid}₴</div>}
+                    {ticket.status && <div style={{ color: '#aaa', fontSize: 12 }}>Status: {ticket.status}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Promo codes block */}
+        {event.promo_codes && event.promo_codes.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{ fontSize: 22, marginBottom: 10 }}>Promo Codes</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
+              {event.promo_codes.map(promo => (
+                <div key={promo.id} style={{ background: '#e6f7ff', borderRadius: 10, padding: 12, minWidth: 180, boxShadow: '0 1px 4px #2a7ae255' }}>
+                  <div style={{ fontWeight: 700, fontSize: 18 }}>{promo.code}</div>
+                  <div style={{ color: '#2a7ae2', fontSize: 15 }}>-{promo.discount_percentage}%</div>
+                  <div style={{ color: '#888', fontSize: 13 }}>Expires: {new Date(promo.expires_at).toLocaleDateString()}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
+      </header>
+
+      <main className="main-content">
+        <div className="event-page" style={{ maxWidth: 800, margin: '32px auto', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #ffe066', padding: 32 }}>
+          <h1 style={{ fontSize: 32, marginBottom: 12, color: '#181818' }}>{event.title}</h1>
+          {event.poster_url && (
+            (() => {
+              let imgSrc = event.poster_url;
+              if (imgSrc.startsWith('/uploads')) {
+                const apiUrl = import.meta.env.VITE_API_URL || '';
+                const baseUrl = apiUrl.replace(/\/api$/, '');
+                imgSrc = baseUrl + imgSrc;
+              }
+              return <img src={imgSrc} alt={event.title} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12, marginBottom: 18 }} />;
+            })()
+          )}
+          <div style={{ color: '#888', fontSize: 16, marginBottom: 8 }}>
+            {event.format && <span>Format: {event.format} | </span>}
+            {event.theme && <span>Theme: {event.theme} | </span>}
+            {event.status && <span>Status: {event.status}</span>}
+          </div>
+          <div style={{ color: '#444', fontSize: 18, marginBottom: 18 }}>{event.description}</div>
+          <div style={{ marginBottom: 10 }}>
+            <b>Start:</b> {new Date(event.start_date).toLocaleString()}<br />
+            <b>End:</b> {new Date(event.end_date).toLocaleString()}<br />
+            {event.address && <><b>Address:</b> {event.address}<br /></>}
+            <b>Price:</b> {event.price}₴<br />
+            {event.ticket_limit && <><b>Tickets limit:</b> {event.ticket_limit}<br /></>}
+          </div>
+          {/* Buy ticket button */}
+          <div style={{ margin: '18px 0' }}>
+            <button
+              onClick={handleBuyTicket}
+              disabled={buying}
+              style={{ background: '#2a7ae2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 18, cursor: 'pointer', boxShadow: '0 1px 4px #2a7ae255' }}
+            >
+              {buying ? 'Processing...' : 'Buy Ticket'}
+            </button>
+            {buySuccess && <span style={{ color: 'green', marginLeft: 12 }}>{buySuccess}</span>}
+            {buyError && <span style={{ color: 'red', marginLeft: 12 }}>{buyError}</span>}
+          </div>
+          {event.company && (
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+              {event.company.picture_url
+                ? <img src={event.company.picture_url} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                : <img src="/default-company-avatar.png" alt="Default company avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+              }
+              <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
+            </div>
+          )}
+          {event.redirect_url && (
+            <div style={{ marginTop: 18 }}>
+              <a href={event.redirect_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7ae2', fontWeight: 600 }}>Event external page</a>
+            </div>
+          )}
+        </div>
+
+
+      </main>
+
+      <footer className="home-footer">
+        <div className="footer-row">
+          <a href="/all-event-types">All event types</a>
+          <a href="/faqs">FAQs</a>
+          <a href="/how-it-works">How it works</a>
+          <a href="/about-us">About us</a>
+        </div>
+        <div className="footer-row copyright">© 2026 Uevent</div>
+      </footer>
+    </div>
+  );
+};
+
+export default EventPage;
