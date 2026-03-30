@@ -13,6 +13,7 @@ interface Event {
   poster_url?: string;
   status?: string;
   publish_date?: string;
+  companyId?: number | null;
 }
 
 interface News {
@@ -195,15 +196,65 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
   if (!company) return <div className="profile-root"><div>Company not found</div></div>;
 
   let isOwner = false;
+  let isAdmin = false;
+  let user: { id: number; role?: string } | null = null;
   try {
     const userStr = localStorage.getItem('profile');
     if (userStr && company.owner) {
-      const user = JSON.parse(userStr);
-      isOwner = user.id === company.owner.id;
+      user = JSON.parse(userStr);
+      isOwner = !!user && user.id === company.owner.id;
+      isAdmin = !!user && user.role === 'admin';
     }
   } catch {
-    // ignore error, fallback to not owner
+    // ignore error, fallback to not owner/admin
   }
+
+
+  // Function to check if current user can delete the event
+  const canDeleteEvent = (eventHostId: number) => {
+    if (!user) return false;
+    return isAdmin || user.id === eventHostId;
+  };
+
+  // Delete company handler
+  const handleDeleteCompany = async () => {
+    if (!window.confirm('Are you sure you want to delete this company? This action cannot be undone.')) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${apiUrl}/companies/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      // Redirect to home or all companies page after deletion
+      window.location.href = '/';
+    } catch (e) {
+      alert('Failed to delete company: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    }
+  };
+
+  // Delete event handler
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${apiUrl}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      // Remove deleted event from company.events
+      setCompany(company => company ? { ...company, events: (company.events || []).filter(ev => ev.id !== eventId) } : company);
+    } catch (e) {
+      alert('Failed to delete event: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    }
+  };
 
   const isLoggedIn = !!localStorage.getItem('access_token');
 
@@ -255,7 +306,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             <div style={{ color: '#888', fontSize: 18 }}><b>Email:</b> {company.email_for_info}</div>
             <div style={{ color: '#888', fontSize: 18 }}><b>Location:</b> {company.location || <span style={{color:'#bbb'}}>Not specified</span>}</div>
           </div>
-          {isOwner && (
+          {(isOwner || isAdmin) && (
             <>
               <button onClick={() => setShowNewsForm(true)} style={{
                 background: '#ffe066',
@@ -292,6 +343,29 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                 whiteSpace: 'nowrap'
               }}>
                 Add Event
+              </button>
+              {/* Delete company button for owner/admin */}
+              <button
+                onClick={handleDeleteCompany}
+                style={{
+                  background: '#ff4d4f',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '10px 22px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  marginLeft: 0,
+                  marginRight: 0,
+                  height: 44,
+                  alignSelf: 'center',
+                  boxShadow: '0 2px 8px #ff4d4f44',
+                  whiteSpace: 'nowrap',
+                }}
+                title="Delete company"
+              >
+                Delete Company
               </button>
             </>
           )}
@@ -482,7 +556,31 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                   {event.status && (
                     <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Status: {event.status}</div>
                   )}
+                  {/* Delete button for admin/owner */}
+                  {canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || (user ? user.id : 0)) && (
+                    <button
+                      onClick={() => handleDeleteEvent(event.id)}
+                      style={{
+                        marginTop: 10,
+                        background: '#ff4d4f',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '8px 18px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: 15,
+                        boxShadow: '0 1px 4px #ff4d4f44',
+                      }}
+                      title="Delete event"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
+                  {event.companyId === null && (
+                    <div style={{ color: '#ff4d4f', fontSize: 14, marginTop: 6 }}>This company was deleted</div>
+                  )}
                 </div>
               ))
             ) : (

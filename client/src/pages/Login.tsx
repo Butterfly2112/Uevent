@@ -44,6 +44,10 @@ const Login: React.FC = () => {
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
         }
+        // Сохраняем профиль пользователя с ролью
+        if (data.user) {
+          localStorage.setItem('profile', JSON.stringify(data.user));
+        }
         navigate('/');
       }
     } catch {

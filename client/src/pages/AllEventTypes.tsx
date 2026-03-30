@@ -100,6 +100,41 @@ const AllEventTypes: React.FC = () => {
     fetchEvents(params);
   };
 
+  // Get user info from localStorage for permission checks
+  let user = null;
+  try {
+    const userStr = localStorage.getItem('profile');
+    if (userStr) user = JSON.parse(userStr);
+  } catch {
+    // Ignore JSON parse errors
+  }
+
+  // Function to check if current user can delete the event
+  const canDeleteEvent = (eventHostId: number) => {
+    if (!user) return false;
+    // Admins can delete any event, owners can delete their own
+    return user.role === 'admin' || user.id === eventHostId;
+  };
+
+  // Delete event handler
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${apiUrl}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setEvents(events => events.filter(ev => ev.id !== eventId));
+    } catch (e) {
+      alert('Failed to delete event: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    }
+  };
+
   return (
     <div className="home-root">
       <header className="home-header">
@@ -109,15 +144,15 @@ const AllEventTypes: React.FC = () => {
             <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
           </span>
         </a>
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 24 }}>
-            <input
-              className="search-input"
-              type="text"
-              placeholder="Search events"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ minWidth: 180, background: '#fff', border: '1px solid #ffe066', borderRight: 'none', borderRadius: '20px 0 0 20px', padding: '8px 12px', fontSize: 16, color: '#222' }}
-              onKeyDown={e => {
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 24 }}>
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search events"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ minWidth: 180, background: '#fff', border: '1px solid #ffe066', borderRight: 'none', borderRadius: '20px 0 0 20px', padding: '8px 12px', fontSize: 16, color: '#222' }}
+            onKeyDown={e => {
                 if (e.key === 'Enter') {
                   fetchEvents({ search });
                 }
@@ -270,9 +305,8 @@ const AllEventTypes: React.FC = () => {
         {error && <div style={{ color: 'red', textAlign: 'center', margin: 32 }}>{error}</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center' }}>
           {events.map(event => (
-            <a
+            <div
               key={event.id}
-              href={`/event/${event.id}`}
               style={{
                 minWidth: 260,
                 maxWidth: 320,
@@ -289,6 +323,7 @@ const AllEventTypes: React.FC = () => {
                 position: 'relative',
               }}
             >
+              {/* Event image */}
               {event.poster_url && event.poster_url !== 'default' ? (() => {
                 let imgSrc = event.poster_url;
                 if (imgSrc.startsWith('/uploads')) {
@@ -322,7 +357,30 @@ const AllEventTypes: React.FC = () => {
               {event.address && (
                 <div style={{ color: '#999', fontSize: 13, marginTop: 2 }}>Location: {event.address}</div>
               )}
-            </a>
+              {/* Delete button for admin/owner */}
+              {canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || user?.id) && (
+                <button
+                  onClick={() => handleDeleteEvent(event.id)}
+                  style={{
+                    marginTop: 12,
+                    background: '#ff4d4f',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 18px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    boxShadow: '0 1px 4px #ff4d4f44',
+                  }}
+                  title="Delete event"
+                >
+                  Delete
+                </button>
+              )}
+              {/* Link to event page */}
+              <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
+            </div>
           ))}
         </div>
         {!loading && events.length === 0 && !error && (

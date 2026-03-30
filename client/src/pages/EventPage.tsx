@@ -55,13 +55,6 @@ const EventPage: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // const [commentContent, setCommentContent] = useState('');
-  // const [commentSubmitting, setCommentSubmitting] = useState(false);
-  // const [commentError, setCommentError] = useState('');
-  // const [commentSuccess, setCommentSuccess] = useState('');
-  const [buying, setBuying] = useState(false);
-  const [buyError, setBuyError] = useState('');
-  const [buySuccess, setBuySuccess] = useState('');
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -87,39 +80,6 @@ const EventPage: React.FC = () => {
   if (!event) return <div style={{padding: 32}}>Event not found</div>;
 
   const isLoggedIn = !!localStorage.getItem('access_token');
-
-
-
-
-  // Buy ticket
-  const handleBuyTicket = async () => {
-    setBuying(true);
-    setBuyError('');
-    setBuySuccess('');
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/tickets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isLoggedIn ? { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } : {}),
-        },
-        body: JSON.stringify({ event_id: id }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setBuySuccess('Ticket purchased successfully!');
-      // Update tickets list
-      if (event) {
-        const newTicket = await res.json();
-        setEvent({ ...event, tickets: event.tickets ? [...event.tickets, newTicket] : [newTicket] });
-      }
-    } catch (e) {
-      setBuyError(e instanceof Error ? e.message : 'Purchase failed');
-    } finally {
-      setBuying(false);
-    }
-  };
-
   return (
     <div className="home-root">
       <header className="home-header">
@@ -223,27 +183,20 @@ const EventPage: React.FC = () => {
             <b>Price:</b> {event.price}₴<br />
             {event.ticket_limit && <><b>Tickets limit:</b> {event.ticket_limit}<br /></>}
           </div>
-          {/* Buy ticket button */}
-          <div style={{ margin: '18px 0' }}>
-            <button
-              onClick={handleBuyTicket}
-              disabled={buying}
-              style={{ background: '#2a7ae2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 18, cursor: 'pointer', boxShadow: '0 1px 4px #2a7ae255' }}
-            >
-              {buying ? 'Processing...' : 'Buy Ticket'}
-            </button>
-            {buySuccess && <span style={{ color: 'green', marginLeft: 12 }}>{buySuccess}</span>}
-            {buyError && <span style={{ color: 'red', marginLeft: 12 }}>{buyError}</span>}
+          {/* Buy ticket button removed as requested */}
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+            {event.company && event.company.id !== null ? (
+              <>
+                {event.company.picture_url
+                  ? <img src={event.company.picture_url} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                  : <img src="/default-company-avatar.png" alt="Default company avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                }
+                <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
+              </>
+            ) : (
+              <span style={{ fontWeight: 600, color: '#ff4d4f' }}>This company was deleted</span>
+            )}
           </div>
-          {event.company && (
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
-              {event.company.picture_url
-                ? <img src={event.company.picture_url} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-                : <img src="/default-company-avatar.png" alt="Default company avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-              }
-              <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
-            </div>
-          )}
           {event.redirect_url && (
             <div style={{ marginTop: 18 }}>
               <a href={event.redirect_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7ae2', fontWeight: 600 }}>Event external page</a>

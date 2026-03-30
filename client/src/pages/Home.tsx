@@ -16,6 +16,11 @@ interface Event {
   price?: number;
   address?: string;
   publish_date?: string;
+  companyId?: number | null;
+  company?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 const Home: React.FC = () => {
@@ -82,10 +87,12 @@ const Home: React.FC = () => {
       const res = await fetch(`${apiUrl}/events/search?limit=100`);
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
-      setAllEvents(data.data || []);
-      setEvents(data.data || []);
+      // Show all events, including those with companyId === null
+      const allFetchedEvents = data.data || [];
+      setAllEvents(allFetchedEvents);
+      setEvents(allFetchedEvents);
       // Extract unique locations from all events
-      const locs = Array.from(new Set((data.data || []).map((e: Event) => e.address).filter(Boolean))) as string[];
+      const locs = Array.from(new Set(allFetchedEvents.map((e: Event) => e.address).filter(Boolean))) as string[];
       setLocations(locs);
     } catch {
       setEvents([]);
@@ -251,7 +258,7 @@ const Home: React.FC = () => {
               style={{
                 overflow: 'hidden',
                 display: 'flex',
-                gap: 24,
+                gap: 40, 
                 scrollBehavior: 'smooth',
                 padding: '8px 0',
                 minHeight: 220,
@@ -261,61 +268,71 @@ const Home: React.FC = () => {
                 <div style={{ color: '#888', fontSize: 20, padding: 32 }}>No events found</div>
               )}
               {events.map(event => (
-                <a
-                  key={event.id}
-                  href={`/event/${event.id}`}
-                  style={{
-                    minWidth: 260,
-                    maxWidth: 320,
-                    background: '#e6e6e6',
-                    borderRadius: 16,
-                    boxShadow: '0 2px 8px #e0e0e0',
-                    padding: 20,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                    color: '#222',
-                    transition: 'box-shadow 0.2s',
-                    position: 'relative',
-                  }}
-                >
-                  {(() => {
-                    let imgSrc = '';
-                    if (event.poster_url && event.poster_url !== 'default') {
-                      imgSrc = event.poster_url;
-                      if (imgSrc.startsWith('/uploads')) {
-                        const apiUrl = import.meta.env.VITE_API_URL || '';
-                        const baseUrl = apiUrl.replace(/\/api$/, '');
-                        imgSrc = baseUrl + imgSrc;
+                <div key={event.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 260, maxWidth: 320 }}>
+                  <a
+                    href={`/event/${event.id}`}
+                    style={{
+                      minWidth: 260,
+                      maxWidth: 320,
+                      background: '#e6e6e6',
+                      borderRadius: 16,
+                      boxShadow: '0 2px 8px #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      color: '#222',
+                      transition: 'box-shadow 0.2s',
+                      position: 'relative',
+                    }}
+                  >
+                    {(() => {
+                      let imgSrc = '';
+                      if (event.poster_url && event.poster_url !== 'default') {
+                        imgSrc = event.poster_url;
+                        if (imgSrc.startsWith('/uploads')) {
+                          const apiUrl = import.meta.env.VITE_API_URL || '';
+                          const baseUrl = apiUrl.replace(/\/api$/, '');
+                          imgSrc = baseUrl + imgSrc;
+                        }
+                      } else {
+                        imgSrc = '/default-event.png';
                       }
-                    } else {
-                      imgSrc = '/default-event.png';
-                    }
-                    return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12, background: '#f0f0f0' }} />;
-                  })()}
-                  <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: '#222' }}>{event.title}</div>
-                  <div style={{ color: '#888', fontSize: 15, textAlign: 'center', marginBottom: 2 }}>
-                    {event.publish_date && (
-                      <>
-                        <span style={{ fontWeight: 500 }}>Publish:</span> {new Date(event.publish_date).toLocaleDateString()} {new Date(event.publish_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
-                      </>
-                    )}
-                    {event.start_date && (
-                      <>
-                        <span style={{ fontWeight: 500 }}>Start:</span> {new Date(event.start_date).toLocaleDateString()} {new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
-                      </>
-                    )}
-                    {event.end_date && (
-                      <>
-                        <span style={{ fontWeight: 500 }}>End:</span> {new Date(event.end_date).toLocaleDateString()} {new Date(event.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </>
-                    )}
-                  </div>
-                  <div style={{ color: '#222', fontWeight: 700, fontSize: 16 }}>
-                    {event.price === 0 ? 'Free' : (event.price ? `${event.price}₴` : '')}
-                  </div>
-                </a>
+                      return <img src={imgSrc} alt={event.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12, background: '#f0f0f0' }} />;
+                    })()}
+                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: '#222' }}>{event.title}</div>
+                    <div style={{ color: '#888', fontSize: 15, textAlign: 'center', marginBottom: 2 }}>
+                      {event.publish_date && (
+                        <>
+                          <span style={{ fontWeight: 500 }}>Publish:</span> {new Date(event.publish_date).toLocaleDateString()} {new Date(event.publish_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
+                        </>
+                      )}
+                      {event.start_date && (
+                        <>
+                          <span style={{ fontWeight: 500 }}>Start:</span> {new Date(event.start_date).toLocaleDateString()} {new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
+                        </>
+                      )}
+                      {event.end_date && (
+                        <>
+                          <span style={{ fontWeight: 500 }}>End:</span> {new Date(event.end_date).toLocaleDateString()} {new Date(event.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </>
+                      )}
+                    </div>
+                    <div style={{ color: '#222', fontWeight: 700, fontSize: 16 }}>
+                      {event.price === 0 ? 'Free' : (event.price ? `${event.price}₴` : '')}
+                    </div>
+                    <div style={{ color: '#888', fontSize: 14, marginTop: 4 }}>
+                      {(!event.company || event.companyId === null) ? (
+                        <span style={{ color: '#ff4d4f' }}>This company was deleted</span>
+                      ) : (
+                        <>
+                          <span>Company: </span>
+                          <span>{event.company.name}</span>
+                        </>
+                      )}
+                    </div>
+                  </a>
+                </div>
               ))}
             </div>
             <button
