@@ -34,8 +34,8 @@ import { type RequestWithUser } from 'src/common/interfaces/request-with-user.ty
 import { LoginResponseDto } from './dto/loginResponse.dto';
 import { UsersService } from 'src/users/users.service';
 import {
-  requestPasswordResetDto,
-  resetPasswordDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
 } from './dto/passwordReset.dto';
 @ApiTags('Auth')
 @Controller('auth')
@@ -213,14 +213,14 @@ export class AuthController {
     summary: 'Request password reset',
   })
   @ApiBody({
-    type: requestPasswordResetDto,
+    type: RequestPasswordResetDto,
   })
   @ApiCreatedResponse({
     description:
       'If account with such email exists - letter with token will be sent, if not - nothing happens',
   })
   @Post('request-pass-reset')
-  async requestPasswordReset(@Body() body: requestPasswordResetDto) {
+  async requestPasswordReset(@Body() body: RequestPasswordResetDto) {
     await this.authService.requestPasswordReset(body.email);
 
     return {
@@ -242,7 +242,7 @@ export class AuthController {
     type: String,
   })
   @ApiBody({
-    type: resetPasswordDto,
+    type: ResetPasswordDto,
   })
   @ApiConflictResponse({
     description: 'Invalid token',
@@ -256,7 +256,7 @@ export class AuthController {
   })
   async passwordReset(
     @Query() query: { token: string },
-    @Body() dto: resetPasswordDto,
+    @Body() dto: ResetPasswordDto,
   ) {
     await this.authService.passwordReset(query.token, dto.newPassword);
     return {

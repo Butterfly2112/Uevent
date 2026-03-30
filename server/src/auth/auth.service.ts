@@ -17,9 +17,9 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResponse } from './types/authResponse.type';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/entities/user.entity';
-import { UserResponse } from 'src/users/types/userResponse.type';
 import { JwtType } from './types/jwtType.type';
 import { toUserResponse } from 'src/common/mappers/user.mapper';
+import { UserDetailedInfo } from 'src/users/types/userDetailedInfo.type';
 
 @Injectable()
 export class AuthService {
@@ -272,7 +272,23 @@ export class AuthService {
       .execute();
   }
 
-  async getProfile(userId: number) {
+  async getProfile(userId: number): Promise<UserDetailedInfo> {
     return await this.usersService.getUserByIdDetailed(userId, userId);
+  }
+
+  async resetEmailToken(user: User): Promise<void> {
+    const emailTokenToken = crypto.randomBytes(32).toString('hex');
+
+    const emailToken = await this.tokenRepository.save({
+      type: 'emailChange',
+      token: emailTokenToken,
+      user: user,
+    });
+
+    this.emailService
+      .sendResetEmailConfirmation(user.username, user.email, emailTokenToken)
+      .catch((err) => {
+        console.log('Failed to send email: ', err);
+      });
   }
 }
