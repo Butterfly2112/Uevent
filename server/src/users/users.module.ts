@@ -4,9 +4,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { UsersController } from './users.controller';
+import { UploadModule } from 'src/upload/upload.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [forwardRef(() => AuthModule), TypeOrmModule.forFeature([User])],
+  imports: [
+    forwardRef(() => AuthModule),
+    JwtModule.register({}),
+    UploadModule,
+    TypeOrmModule.forFeature([User]),
+  ],
   providers: [UsersService],
   controllers: [UsersController],
   exports: [UsersService],

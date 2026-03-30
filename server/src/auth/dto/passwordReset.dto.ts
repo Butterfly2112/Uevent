@@ -7,7 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class requestPasswordResetDto {
+export class RequestPasswordResetDto {
   @ApiProperty({
     description: 'Email of the user',
     example: 'crazy@example.com',
@@ -16,7 +16,7 @@ export class requestPasswordResetDto {
   email: string;
 }
 
-export class resetPasswordDto {
+export class ResetPasswordDto {
   @ApiProperty({
     description:
       'Password of the user. Must contain at least one uppercase letter, one lowercase letter and one number.',

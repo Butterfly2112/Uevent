@@ -41,6 +41,31 @@ export class EmailService {
     console.log('Message send: ', info.messageId);
   }
 
+  async sendResetEmailConfirmation(
+    username: string,
+    email: string,
+    token: string,
+  ): Promise<void> {
+    const host = this.configService.get('HOST_FOR_EMAIL');
+    const port = this.configService.get('PORT_FOR_EMAIL');
+    const url = host.startsWith('http')
+      ? `${host}/confirm-email?token=${token}`
+      : `http://${host}:${port}/confirm-email?token=${token}`;
+    const info = await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Confirm your email',
+      text: `To confirm your registration follow the link: ${url}`,
+      html: `
+      <h1>Dear ${username}</h1>
+      <h1>Your email is being reset</h1>
+      <p>Please, confirm new email by following link below</p>
+      <a href="${url}">Confirm Email</a>`,
+    });
+
+    console.log('Message send: ', info.messageId);
+  }
+
   async sendReminder(
     username: string,
     email: string,
