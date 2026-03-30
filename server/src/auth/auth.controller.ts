@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -13,13 +14,16 @@ import { AuthService } from './auth.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
@@ -28,8 +32,11 @@ import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { type RequestWithUser } from 'src/common/interfaces/request-with-user.type';
 import { LoginResponseDto } from './dto/loginResponse.dto';
-
 import { UsersService } from 'src/users/users.service';
+import {
+  requestPasswordResetDto,
+  resetPasswordDto,
+} from './dto/passwordReset.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -178,10 +185,8 @@ export class AuthController {
     description: 'Returns information about current user',
   })
   @UseGuards(AuthGuard)
-  // Changed: Now returns user with company relation for frontend profile
   async getProfile(@Req() req: RequestWithUser) {
-    // Fetch user with company relation for profile page
-    return this.usersService.getUserByIdDetailed(req.user.id, req.user.id);
+    return await this.authService.getProfile(req.user.id);
   }
 
   @ApiBearerAuth()
@@ -202,5 +207,60 @@ export class AuthController {
     });
 
     return { message: 'Logged out successfully' };
+  }
+
+  @ApiOperation({
+    summary: 'Request password reset',
+  })
+  @ApiBody({
+    type: requestPasswordResetDto,
+  })
+  @ApiCreatedResponse({
+    description:
+      'If account with such email exists - letter with token will be sent, if not - nothing happens',
+  })
+  @Post('request-pass-reset')
+  async requestPasswordReset(@Body() body: requestPasswordResetDto) {
+    await this.authService.requestPasswordReset(body.email);
+
+    return {
+      message:
+        'Please check your email box. If you have not received an email,' +
+        'please check correctness of email or if you have account on this email',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Password reset',
+    description:
+      'After this action all the refresh tokens will be deleted, so user need to login again from all devices',
+  })
+  @Post('password-reset')
+  @ApiQuery({
+    name: 'token',
+    description: 'Secret token that were send in the email',
+    type: String,
+  })
+  @ApiBody({
+    type: resetPasswordDto,
+  })
+  @ApiConflictResponse({
+    description: 'Invalid token',
+  })
+  @ApiForbiddenResponse({
+    description: 'Reset Token has expired. Please request password reset again',
+  })
+  @ApiCreatedResponse({
+    description:
+      'Your password were reset successfully, please proceed to login',
+  })
+  async passwordReset(
+    @Query() query: { token: string },
+    @Body() dto: resetPasswordDto,
+  ) {
+    await this.authService.passwordReset(query.token, dto.newPassword);
+    return {
+      message: 'Your password were reset successfully, please proceed to login',
+    };
   }
 }

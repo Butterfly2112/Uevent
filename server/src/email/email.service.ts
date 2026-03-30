@@ -146,4 +146,21 @@ export class EmailService {
     `,
     });
   }
+
+  async sendPasswordRequest(username: string, token: string, email: string) {
+    const host = this.configService.get('HOST_FOR_EMAIL');
+    const port = this.configService.get('PORT_FOR_EMAIL');
+    const url = host.startsWith('http')
+      ? `${host}/password_reset?token=${token}`
+      : `http://${host}:${port}/password-reset?token=${token}`;
+    await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Attention! Do not show this message to anybody!',
+      html: `<h2>Hello ${username}</h2>
+      <p>To continue password reset please follow the link below.</p>
+      <h2><a href="${url}">Reset Password</a></h2>
+      <p>If you wasn't requesting for password reset - ignore this message</p>`,
+    });
+  }
 }
