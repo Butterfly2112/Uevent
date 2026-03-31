@@ -207,15 +207,15 @@ export class EventService {
       qb.andWhere('event.price <= :maxPrice', { maxPrice: dto.maxPrice });
     }
 
-    if (dto.location) {
-      qb.andWhere('event.address ILIKE :location', {
-        location: `%${dto.location}%`,
+    if (dto.address) {
+      qb.andWhere('event.address ILIKE :address', {
+        address: `%${dto.address}%`,
       });
     }
 
     if (dto.search) {
       qb.andWhere(
-        '(event.title ILIKE :search OR event.description ILIKE :search)',
+        '(event.title ILIKE :search OR event.description ILIKE :search OR company.name ILIKE :search)',
         { search: `%${dto.search}%` },
       );
     }
@@ -252,5 +252,19 @@ export class EventService {
     }
 
     return event;
+  }
+
+  async getUserFeed(userId: number): Promise<EventResponse[]> {
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .innerJoin('event.host', 'host')
+      .innerJoin('host.followers', 'follower', 'follower.id = :userId', {
+        userId,
+      })
+      .orderBy('event.start_date', 'DESC')
+      .limit(15)
+      .getMany();
+
+    return toVisibleEvents(events, { owner: false, admin: false }, userId);
   }
 }

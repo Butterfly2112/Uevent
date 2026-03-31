@@ -18,6 +18,7 @@ export class CreateEventDto {
   })
   @IsOptional()
   @IsBoolean()
+  @Type(() => Boolean)
   notificate_owner?: boolean;
 
   @ApiProperty({

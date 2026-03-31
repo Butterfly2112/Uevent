@@ -86,7 +86,7 @@ export class GetEventsDto {
   @ApiProperty({ required: false, example: 'Kyiv' })
   @IsOptional()
   @IsString()
-  location?: string;
+  address?: string;
 
   @ApiProperty({
     required: false,

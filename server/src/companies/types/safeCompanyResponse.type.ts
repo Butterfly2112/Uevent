@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { EventResponse } from 'src/events/types/eventResponse.type';
+import { CompanyNewsResponse } from './companyNewsResponse.type';
 
 export class SafeCompanyResponse {
   @ApiProperty({ description: 'Id of the company', example: '1' })
@@ -56,23 +57,13 @@ export class SafeCompanyResponse {
 
   @ApiProperty({
     description: 'News published by this company',
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 1 },
-        title: { type: 'string', example: 'Grand opening!' },
-        content: { type: 'string', example: 'We are happy to announce...' },
-        images_url: { type: 'array', items: { type: 'string' } },
-        created_at: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: CompanyNewsResponse,
+    isArray: true,
   })
-  news: {
-    id: number;
-    title: string;
-    content: string;
-    images_url: string[];
-    created_at: Date;
-  }[];
+  news: CompanyNewsResponse[];
+
+  @ApiProperty({
+    description: 'Is current user following company owner or not',
+  })
+  is_following?: boolean;
 }

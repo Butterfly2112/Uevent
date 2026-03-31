@@ -1,11 +1,11 @@
 import { SafeCompanyResponse } from 'src/companies/types/safeCompanyResponse.type';
 import { Company } from 'src/companies/entities/company.entity';
-import { EventStatus } from 'src/events/entities/event.entity';
 import { toVisibleEvents } from './event.mapper';
 
 export function mapCompanyProfileToDTO(
   dbCompany: Company,
   currentUserId?: number | null,
+  isFollowing: boolean = false,
 ): SafeCompanyResponse {
   const isOwner = !!currentUserId && currentUserId === dbCompany.owner.id;
   const permissions = { owner: isOwner, admin: false };
@@ -23,6 +23,7 @@ export function mapCompanyProfileToDTO(
     location: dbCompany.location,
     description: dbCompany.description,
     picture_url: dbCompany.picture_url,
+    is_following: isFollowing,
     events: toVisibleEvents(dbCompany.events ?? [], permissions, currentUserId),
     news: dbCompany.news
       ? dbCompany.news.map((news) => ({
@@ -31,6 +32,7 @@ export function mapCompanyProfileToDTO(
           content: news.content,
           images_url: news.images_url,
           created_at: news.created_at,
+          updated_at: news.updated_at,
         }))
       : [],
   };

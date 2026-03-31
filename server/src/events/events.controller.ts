@@ -44,6 +44,15 @@ export class EventController {
     private authService: AuthService,
   ) {}
 
+  @ApiOperation({
+    summary: 'Get events for user based on following companies',
+  })
+  @Get('feed')
+  @UseGuards(AuthGuard)
+  async getUserFeed(@Req() req: RequestWithUser) {
+    return await this.eventService.getUserFeed(req.user.id);
+  }
+
   @Get('search')
   @ApiOperation({ summary: 'Get list of events with filters' })
   @ApiOkResponse({ type: EventResponse, isArray: true })

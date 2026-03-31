@@ -3,7 +3,6 @@ import { UserResponse } from 'src/users/types/userResponse.type';
 import { UserDetailedInfo } from 'src/users/types/userDetailedInfo.type';
 import { toTicketResponse } from './ticket.mapper';
 import { mapCompanyProfileToDTO } from './company.mapper';
-import { EventStatus } from 'src/events/entities/event.entity';
 import { toVisibleEvents } from './event.mapper';
 
 export function toUserResponse(user: User): UserResponse {

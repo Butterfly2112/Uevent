@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   Patch,
+  Post,
   Req,
   UploadedFile,
   UseGuards,
@@ -14,6 +15,7 @@ import { UsersService } from './users.service';
 import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthService } from 'src/auth/auth.service';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
@@ -30,6 +32,11 @@ import { UploadService } from 'src/upload/upload.service';
 import { AuthGuard } from 'src/common/auth.guard';
 import { AvatarUploadInterceptor } from 'src/upload/upload.interceptor';
 import { toUserResponse } from 'src/common/mappers/user.mapper';
+import { UserResponse } from './types/userResponse.type';
+import {
+  FollowersResponseDto,
+  FollowingResponseDto,
+} from './types/followResponse.type.dto';
 
 @Controller('users')
 export class UsersController {
@@ -38,6 +45,88 @@ export class UsersController {
     private authService: AuthService,
     private uploadService: UploadService,
   ) {}
+
+  @ApiOperation({
+    summary: 'Follow the user',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Id of the user',
+  })
+  @ApiOkResponse({
+    description: 'Followed user successfully',
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'You cannot follow yourself or You are already following this user',
+  })
+  @Post('follow/:id')
+  @UseGuards(AuthGuard)
+  async followUser(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.usersService.followUser(param, req.user.id);
+    return {
+      message: 'Followed user successfully',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Unfollow the user',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Id of the user',
+  })
+  @ApiOkResponse({
+    description: 'Unfollowed user successfully',
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'You cannot unfollow yourself or You are not following this user in the first place',
+  })
+  @Post('unfollow/:id')
+  @UseGuards(AuthGuard)
+  async unfollowUser(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.usersService.unfollowUser(param, req.user.id);
+    return {
+      message: 'Unfollowed user successfully',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Get user followers',
+  })
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    type: FollowersResponseDto,
+  })
+  @Get('followers')
+  @UseGuards(AuthGuard)
+  async getUserFollowers(@Req() req: RequestWithUser) {
+    return await this.usersService.getFollowers(req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Get user following',
+  })
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    type: FollowingResponseDto,
+  })
+  @Get('following')
+  @UseGuards(AuthGuard)
+  async getFollowing(@Req() req: RequestWithUser) {
+    return await this.usersService.getFollowing(req.user.id);
+  }
 
   @ApiOperation({
     summary: 'Get user details',

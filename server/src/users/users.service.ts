@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -9,9 +10,17 @@ import { Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { UserDetailedInfo } from './types/userDetailedInfo.type';
-import { toUserDetailedInfo } from 'src/common/mappers/user.mapper';
+import {
+  toUserDetailedInfo,
+  toUserResponse,
+} from 'src/common/mappers/user.mapper';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UploadService } from 'src/upload/upload.service';
+import { UserResponse } from './types/userResponse.type';
+import {
+  FollowersResponseDto,
+  FollowingResponseDto,
+} from './types/followResponse.type.dto';
 
 @Injectable()
 export class UsersService {
@@ -209,5 +218,77 @@ export class UsersService {
     const updatedUser = await this.usersRepository.save(user);
 
     return updatedUser;
+  }
+
+  async followUser(userId: number, currentUserId: number): Promise<void> {
+    if (userId === currentUserId) {
+      throw new BadRequestException('You cannot follow yourself');
+    }
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isFollowing = await this.usersRepository
+      .createQueryBuilder()
+      .relation(User, 'following')
+      .of(currentUserId)
+      .loadMany();
+    const alreadyFollowing = isFollowing.some((u) => u.id === userId);
+
+    if (alreadyFollowing) {
+      throw new BadRequestException('You are already following this user');
+    }
+
+    await this.usersRepository
+      .createQueryBuilder()
+      .relation(User, 'following')
+      .of(currentUserId)
+      .add(userId);
+  }
+
+  async unfollowUser(userId: number, currentUserId: number): Promise<void> {
+    if (userId === currentUserId) {
+      throw new BadRequestException('You cannot unfollow yourself');
+    }
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isFollowing = await this.usersRepository
+      .createQueryBuilder()
+      .relation(User, 'following')
+      .of(currentUserId)
+      .loadMany();
+    const alreadyFollowing = isFollowing.some((u) => u.id === userId);
+
+    if (!alreadyFollowing) {
+      throw new BadRequestException('You are not following this user');
+    }
+
+    await this.usersRepository
+      .createQueryBuilder()
+      .relation(User, 'following')
+      .of(currentUserId)
+      .remove(userId);
+  }
+
+  async getFollowers(userId: number): Promise<FollowersResponseDto> {
+    const [followers, followers_count] =
+      await this.usersRepository.findAndCountBy({ following: { id: userId } });
+    return {
+      followers: followers.map(toUserResponse),
+      followers_count,
+    };
+  }
+
+  async getFollowing(userId: number): Promise<FollowingResponseDto> {
+    const [following, following_count] =
+      await this.usersRepository.findAndCountBy({
+        followers: { id: userId },
+      });
+
+    return { following: following.map(toUserResponse), following_count };
   }
 }

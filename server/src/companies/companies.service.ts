@@ -83,7 +83,20 @@ export class CompanyService {
       throw new NotFoundException('Company not found.');
     }
 
-    return mapCompanyProfileToDTO(info, currentUserId ? currentUserId : null);
+    let isFollowing = false;
+
+    if (currentUserId && currentUserId !== info.owner.id) {
+      const count = await this.companyRepository.manager
+        .createQueryBuilder()
+        .from('subscriptions', 'sub')
+        .where('sub.subscriber_id = :currentUserId', { currentUserId })
+        .andWhere('sub.subscribed_to_id = :ownerId', { ownerId: info.owner.id })
+        .getCount();
+
+      isFollowing = count > 0;
+    }
+
+    return mapCompanyProfileToDTO(info, currentUserId, isFollowing);
   }
 
   async deleteCompanyById(
