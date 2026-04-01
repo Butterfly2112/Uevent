@@ -84,7 +84,10 @@ const Home: React.FC = () => {
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/events/search?limit=100`);
+      const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${apiUrl}/events/search?limit=100`, { headers });
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
       // Show all events, including those with companyId === null

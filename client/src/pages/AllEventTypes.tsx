@@ -73,7 +73,11 @@ const AllEventTypes: React.FC = () => {
       if (paramsObj.max_price) params.append('max_price', paramsObj.max_price);
       if (paramsObj.publish_date) params.append('publish_date', paramsObj.publish_date);
       const queryStr = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`/api/events/search${queryStr}`);
+      const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiUrl}/events/search${queryStr}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
       setEvents(data.data || []);
@@ -127,11 +131,11 @@ const AllEventTypes: React.FC = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
       const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${apiUrl}/events/${eventId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
       });
       if (!res.ok) throw new Error(await res.text());
       setEvents(events => events.filter(ev => ev.id !== eventId));

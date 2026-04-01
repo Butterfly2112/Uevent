@@ -62,7 +62,10 @@ const EventPage: React.FC = () => {
       setError('');
       try {
         const apiUrl = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${apiUrl}/events/${id}`);
+        const token = localStorage.getItem('access_token');
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`${apiUrl}/events/${id}`, { headers });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         setEvent(data);
@@ -186,13 +189,23 @@ const EventPage: React.FC = () => {
           {/* Buy ticket button removed as requested */}
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
             {event.company && event.company.id !== null ? (
-              <>
-                {event.company.picture_url
-                  ? <img src={event.company.picture_url} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-                  : <img src="/default-company-avatar.png" alt="Default company avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+              (() => {
+                let companyImgSrc = '';
+                if (event.company.picture_url && event.company.picture_url !== 'default') {
+                  companyImgSrc = event.company.picture_url;
+                  if (companyImgSrc.startsWith('/uploads')) {
+                    const apiUrl = import.meta.env.VITE_API_URL || '';
+                    const baseUrl = apiUrl.replace(/\/api$/, '');
+                    companyImgSrc = baseUrl + companyImgSrc;
+                  }
+                } else {
+                  companyImgSrc = '/default-company-avatar.png';
                 }
-                <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
-              </>
+                return <>
+                  <img src={companyImgSrc} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                  <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
+                </>;
+              })()
             ) : (
               <span style={{ fontWeight: 600, color: '#ff4d4f' }}>This company was deleted</span>
             )}

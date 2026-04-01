@@ -144,11 +144,11 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         });
         const token = localStorage.getItem('access_token');
         const apiUrl = import.meta.env.VITE_API_URL || '';
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch(`${apiUrl}/companies/${id}/news`, {
           method: 'POST',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
+          headers,
           body: formData
         });
         if (!res.ok) {
@@ -177,7 +177,10 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
       try {
         setLoading(true);
         setError('');
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/companies/${id}`);
+        const token = localStorage.getItem('access_token');
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/companies/${id}`, { headers });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         if (!ignore) setCompany(data);
@@ -222,11 +225,11 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
       const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${apiUrl}/companies/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
       });
       if (!res.ok) throw new Error(await res.text());
       // Redirect to home or all companies page after deletion
@@ -242,11 +245,11 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
       const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${apiUrl}/events/${eventId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
       });
       if (!res.ok) throw new Error(await res.text());
       // Remove deleted event from company.events
