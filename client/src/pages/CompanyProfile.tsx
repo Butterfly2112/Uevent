@@ -213,11 +213,6 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
   }
 
 
-  // Function to check if current user can delete the event
-  const canDeleteEvent = (eventHostId: number) => {
-    if (!user) return false;
-    return isAdmin || user.id === eventHostId;
-  };
 
   // Delete company handler
   const handleDeleteCompany = async () => {
@@ -560,7 +555,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                     <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Status: {event.status}</div>
                   )}
                   {/* Delete button for admin/owner */}
-                  {canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || (user ? user.id : 0)) && (
+                  {(isOwner || isAdmin) && (
                     <button
                       onClick={() => handleDeleteEvent(event.id)}
                       style={{

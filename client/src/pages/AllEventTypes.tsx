@@ -37,7 +37,6 @@ const AllEventTypes: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [publishDate, setPublishDate] = useState('');
 
   useEffect(() => {
     fetchEvents();
@@ -49,11 +48,10 @@ const AllEventTypes: React.FC = () => {
     theme?: string;
     status?: string;
     address?: string;
-    start_date?: string;
-    end_date?: string;
-    min_price?: string;
-    max_price?: string;
-    publish_date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minPrice?: string;
+    maxPrice?: string;
   }
 
   const fetchEvents = async (paramsObj: EventFilterParams = {}) => {
@@ -67,11 +65,10 @@ const AllEventTypes: React.FC = () => {
       if (paramsObj.theme) params.append('theme', paramsObj.theme);
       if (paramsObj.status) params.append('status', paramsObj.status);
       if (paramsObj.address) params.append('address', paramsObj.address);
-      if (paramsObj.start_date) params.append('start_date', paramsObj.start_date);
-      if (paramsObj.end_date) params.append('end_date', paramsObj.end_date);
-      if (paramsObj.min_price) params.append('min_price', paramsObj.min_price);
-      if (paramsObj.max_price) params.append('max_price', paramsObj.max_price);
-      if (paramsObj.publish_date) params.append('publish_date', paramsObj.publish_date);
+      if (paramsObj.dateFrom) params.append('dateFrom', paramsObj.dateFrom);
+      if (paramsObj.dateTo) params.append('dateTo', paramsObj.dateTo);
+      if (paramsObj.minPrice) params.append('minPrice', paramsObj.minPrice);
+      if (paramsObj.maxPrice) params.append('maxPrice', paramsObj.maxPrice);
       const queryStr = params.toString() ? `?${params.toString()}` : '';
       const token = localStorage.getItem('access_token');
       const headers: Record<string, string> = {};
@@ -101,11 +98,10 @@ const AllEventTypes: React.FC = () => {
     if (theme) params.theme = theme;
     if (status) params.status = status;
     if (address) params.address = address;
-    if (startDate) params.start_date = startDate;
-    if (endDate) params.end_date = endDate;
-    if (minPrice) params.min_price = minPrice;
-    if (maxPrice) params.max_price = maxPrice;
-    if (publishDate) params.publish_date = publishDate;
+    if (startDate) params.dateFrom = startDate;
+    if (endDate) params.dateTo = endDate;
+    if (minPrice) params.minPrice = minPrice;
+    if (maxPrice) params.maxPrice = maxPrice;
     fetchEvents(params);
   };
 
@@ -272,13 +268,6 @@ const AllEventTypes: React.FC = () => {
             min={0}
             onChange={e => setMaxPrice(e.target.value)}
             style={{ minWidth: 100, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
-          />
-          <input
-            type="date"
-            placeholder="Publish date"
-            value={publishDate}
-            onChange={e => setPublishDate(e.target.value)}
-            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
           />
           <button
             className="filter-btn"
