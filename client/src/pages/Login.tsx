@@ -44,7 +44,6 @@ const Login: React.FC = () => {
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
         }
-        // После логина сразу получаем актуальный профиль
         if (data.access_token) {
           try {
             const profileRes = await fetch('http://localhost:3000/api/auth/profile', {
@@ -55,7 +54,6 @@ const Login: React.FC = () => {
               const profileData = await profileRes.json();
               localStorage.setItem('profile', JSON.stringify(profileData));
             } else {
-              // fallback: если профиль не загрузился, сохраняем старый user
               if (data.user) {
                 localStorage.setItem('profile', JSON.stringify(data.user));
               }

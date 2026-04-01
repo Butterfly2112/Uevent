@@ -62,7 +62,6 @@ const Home: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('access_token'));
   const [company, setCompany] = useState<{ id: number; name: string } | null>(null);
 
-  // Обновлять информацию о компании при монтировании и после логина
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('access_token'));
     const profileStr = localStorage.getItem('profile');
@@ -78,7 +77,6 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  // Слушаем событие storage для обновления компании при логине в другом окне
   useEffect(() => {
     const handleStorage = () => {
       setIsLoggedIn(!!localStorage.getItem('access_token'));

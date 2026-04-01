@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Logout from '../components/Logout';
 import './Profile.css';
 import planetIcon from '../assets/planet.svg';
-import searchIcon from '../assets/search.svg';
 
 const LogoutButtonStyled = () => <Logout />;
 
@@ -98,10 +97,6 @@ const Profile: React.FC = () => {
             <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
           </span>
         </a>
-        <input className="search-input" type="text" placeholder="Search events" />
-        <button className="search-btn">
-          <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
-        </button>
         <nav className="main-nav">
           <a href="#">Browse Events</a>
           <a href="/create-event">Create Event</a>

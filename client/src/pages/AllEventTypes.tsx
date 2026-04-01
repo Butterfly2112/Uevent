@@ -33,10 +33,15 @@ const AllEventTypes: React.FC = () => {
   const [theme, setTheme] = useState('');
   const [status, setStatus] = useState('');
   const [address, setAddress] = useState('');
+  const [locations, setLocations] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  // For admin/owner, always show all events (do not hide deleted companies)
+  // We'll set this dynamically after reading user info
+  const [hideDeletedCompanies, setHideDeletedCompanies] = useState(true);
+   const [allEvents, setAllEvents] = useState<Event[]>([]);
 
   useEffect(() => {
     fetchEvents();
@@ -77,7 +82,16 @@ const AllEventTypes: React.FC = () => {
       const res = await fetch(`${apiUrl}/events/search${queryStr}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
-      setEvents(data.data || []);
+      const allEvents = data.data || [];
+      const filteredEvents = allEvents;
+      if (hideDeletedCompanies) {
+          setEvents(filteredEvents.filter((ev: Event) => ev.company && ev.companyId !== null));
+      }
+        setAllEvents(allEvents);
+        setEvents(allEvents);
+      // Extract unique locations for dropdown
+      const locs = Array.from(new Set(allEvents.map((e: Event) => e.address).filter(Boolean))) as string[];
+      setLocations(locs);
     } catch (e: unknown) {
       if (e instanceof Error) {
         setError(e.message);
@@ -88,6 +102,14 @@ const AllEventTypes: React.FC = () => {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    let filtered = allEvents;
+    if (hideDeletedCompanies) {
+      filtered = filtered.filter((ev: Event) => ev.company && ev.companyId !== null);
+    }
+    setEvents(filtered);
+  }, [allEvents, hideDeletedCompanies]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +135,13 @@ const AllEventTypes: React.FC = () => {
   } catch {
     // Ignore JSON parse errors
   }
+
+  // If user is admin or owner, always show all events (do not hide deleted companies)
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'owner')) {
+      setHideDeletedCompanies(false);
+    }
+  }, [user]);
 
   // Function to check if current user can delete the event
   const canDeleteEvent = (eventHostId: number) => {
@@ -196,7 +225,7 @@ const AllEventTypes: React.FC = () => {
         top: 0,
         zIndex: 2
       }}>
-        <form onSubmit={handleFilter} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}>
+        <form onSubmit={handleFilter} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, width: '100%', justifyContent: 'center' }}>
           <select
             value={format}
             onChange={e => setFormat(e.target.value)}
@@ -232,27 +261,36 @@ const AllEventTypes: React.FC = () => {
             <option value="canceled">Canceled</option>
             <option value="ended">Ended</option>
           </select>
-          <input
-            type="text"
-            placeholder="Location"
+          <select
             value={address}
             onChange={e => setAddress(e.target.value)}
             style={{ minWidth: 140, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
-          />
-          <input
-            type="date"
-            placeholder="Start date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
-          />
-          <input
-            type="date"
-            placeholder="End date"
-            value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-            style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
-          />
+          >
+            <option value="">All locations</option>
+            {locations.map(loc => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: 0, minWidth: 120 }}>
+            <label htmlFor="start-date" style={{ fontSize: 12, color: '#888', marginTop: -13, marginLeft: 2, lineHeight: 1, fontWeight: 500 }}>Start date</label>
+            <input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222', marginTop: 0 }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: 0, minWidth: 120 }}>
+            <label htmlFor="end-date" style={{ fontSize: 12, color: '#888', marginTop: -13, marginLeft: 2, lineHeight: 1, fontWeight: 500 }}>End date</label>
+            <input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              style={{ minWidth: 120, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222', marginTop: 0 }}
+            />
+          </div>
           <input
             type="number"
             placeholder="Min price"
@@ -269,6 +307,27 @@ const AllEventTypes: React.FC = () => {
             onChange={e => setMaxPrice(e.target.value)}
             style={{ minWidth: 100, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
           />
+          {(user && (user.role === 'admin' || user.role === 'owner')) ? (
+            <div style={{ background: '#fffde6', border: '1.5px solid #ffe066', borderRadius: 10, padding: '7px 18px 7px 12px', marginLeft: 8, display: 'flex', alignItems: 'center', boxShadow: '0 1px 4px #ffe06633', fontWeight: 500, fontSize: 15, color: '#888', userSelect: 'none', height: 40, opacity: 0.6 }}>
+              <input
+                type="checkbox"
+                checked={false}
+                disabled
+                style={{ marginRight: 8, width: 18, height: 18 }}
+              />
+              Hide events with deleted company (disabled for admin/owner)
+            </div>
+          ) : (
+            <div style={{ background: '#fffde6', border: '1.5px solid #ffe066', borderRadius: 10, padding: '7px 18px 7px 12px', marginLeft: 8, display: 'flex', alignItems: 'center', boxShadow: '0 1px 4px #ffe06633', fontWeight: 500, fontSize: 15, color: '#444', userSelect: 'none', height: 40 }}>
+              <input
+                type="checkbox"
+                checked={hideDeletedCompanies}
+                onChange={e => setHideDeletedCompanies(e.target.checked)}
+                style={{ marginRight: 8, width: 18, height: 18 }}
+              />
+              Hide events with deleted company
+            </div>
+          )}
           <button
             className="filter-btn"
             type="submit"
@@ -297,6 +356,72 @@ const AllEventTypes: React.FC = () => {
           </button>
         </form>
       </div>
+      {/* Search bar for title and description */}
+      <div style={{
+        maxWidth: 700,
+        margin: '24px auto 0 auto',
+        background: '#fff',
+        borderRadius: 14,
+        boxShadow: '0 1px 8px #ffe066',
+        padding: '18px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0,
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <input
+          type="text"
+          placeholder="Search by title or description..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              // Фильтруем по названию и описанию на клиенте
+              setEvents(prev => prev.filter(ev =>
+                (ev.title && ev.title.toLowerCase().includes(search.trim().toLowerCase())) ||
+                (ev.description && ev.description.toLowerCase().includes(search.trim().toLowerCase()))
+              ));
+            }
+          }}
+          style={{
+            minWidth: 320,
+            background: '#fff',
+            border: '1px solid #ffe066',
+            borderRight: 'none',
+            borderRadius: '20px 0 0 20px',
+            padding: '8px 12px',
+            fontSize: 17,
+            color: '#222',
+            outline: 'none',
+          }}
+        />
+        <button
+          className="search-btn"
+          onClick={() => setEvents(prev => prev.filter(ev =>
+            (ev.title && ev.title.toLowerCase().includes(search.trim().toLowerCase())) ||
+            (ev.description && ev.description.toLowerCase().includes(search.trim().toLowerCase()))
+          ))}
+          type="button"
+          style={{
+            borderRadius: '0 20px 20px 0',
+            border: '1px solid #ffe066',
+            borderLeft: 'none',
+            width: 38,
+            height: 38,
+            marginLeft: 0,
+            background: 'linear-gradient(90deg, #ffe066 60%, #ffd700 100%)',
+            boxShadow: '0 1px 6px #ffe066',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0
+          }}
+        >
+          <img src={searchIcon} alt="search" style={{ width: 16, height: 16 }} />
+        </button>
+      </div>
+
       <main className="main-content" style={{ minHeight: 600 }}>
         <h1 style={{ textAlign: 'center', margin: '32px 0 24px 0', fontSize: 36, fontWeight: 700, color: '#222' }}>All Events</h1>
         {loading && <div style={{ textAlign: 'center', margin: 32 }}>Loading...</div>}
