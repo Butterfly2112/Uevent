@@ -11,6 +11,7 @@ import bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { UserDetailedInfo } from './types/userDetailedInfo.type';
 import {
+  mapUserForAdmin,
   toUserDetailedInfo,
   toUserResponse,
 } from 'src/common/mappers/user.mapper';
@@ -21,6 +22,8 @@ import {
   FollowersResponseDto,
   FollowingResponseDto,
 } from './types/followResponse.type.dto';
+import { SearchUserDto } from './dto/searchUser.dto';
+import { UserForAdminResponse } from './types/userForAdmin.type';
 
 @Injectable()
 export class UsersService {
@@ -294,5 +297,33 @@ export class UsersService {
 
   async getUserForService(userId: number): Promise<User | null> {
     return await this.usersRepository.findOne({ where: { id: userId } });
+  }
+
+  async searchUsers(
+    currentUserRole: string,
+    dto: SearchUserDto,
+  ): Promise<{ users: UserForAdminResponse[] | []; total: number }> {
+    if (currentUserRole !== 'admin')
+      throw new ForbiddenException('Only admin allowed to perform such action');
+
+    if (dto.userId) {
+      const user = await this.usersRepository.findOne({
+        where: { id: dto.userId },
+      });
+      if (!user) throw new NotFoundException('User with this id not found');
+      return { users: [mapUserForAdmin(user)], total: 1 };
+    }
+
+    const [users, total] = await this.usersRepository
+      .createQueryBuilder('user')
+      .andWhere(
+        '(user.login ILIKE :search OR user.username ILIKE :search OR user.email ILIKE :search)',
+        {
+          search: `%${dto.search}%`,
+        },
+      )
+      .getManyAndCount();
+
+    return { users: users.map(mapUserForAdmin), total };
   }
 }

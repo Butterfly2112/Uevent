@@ -4,6 +4,7 @@ import { UserDetailedInfo } from 'src/users/types/userDetailedInfo.type';
 import { toTicketResponse } from './ticket.mapper';
 import { mapCompanyProfileToDTO } from './company.mapper';
 import { toVisibleEvents } from './event.mapper';
+import { UserForAdminResponse } from 'src/users/types/userForAdmin.type';
 
 export function toUserResponse(user: User): UserResponse {
   return {
@@ -53,5 +54,18 @@ function toEventBrief(event: any) {
     start_date: event.start_date,
     end_date: event.end_date,
     poster_url: event.poster_url,
+  };
+}
+
+export function mapUserForAdmin(user: User): UserForAdminResponse {
+  return {
+    id: user.id,
+    login: user.login,
+    username: user.username,
+    email: user.email,
+    is_email_verified: user.is_email_verified,
+    role: user.role,
+    avatar_url: user.avatar_url,
+    created_at: user.created_at,
   };
 }
