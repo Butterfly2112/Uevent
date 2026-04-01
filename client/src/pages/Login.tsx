@@ -44,8 +44,28 @@ const Login: React.FC = () => {
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
         }
-        // Сохраняем профиль пользователя с ролью
-        if (data.user) {
+        // После логина сразу получаем актуальный профиль
+        if (data.access_token) {
+          try {
+            const profileRes = await fetch('http://localhost:3000/api/auth/profile', {
+              headers: { 'Authorization': `Bearer ${data.access_token}` },
+              credentials: 'include',
+            });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              localStorage.setItem('profile', JSON.stringify(profileData));
+            } else {
+              // fallback: если профиль не загрузился, сохраняем старый user
+              if (data.user) {
+                localStorage.setItem('profile', JSON.stringify(data.user));
+              }
+            }
+          } catch {
+            if (data.user) {
+              localStorage.setItem('profile', JSON.stringify(data.user));
+            }
+          }
+        } else if (data.user) {
           localStorage.setItem('profile', JSON.stringify(data.user));
         }
         navigate('/');

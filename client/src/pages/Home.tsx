@@ -59,7 +59,44 @@ const Home: React.FC = () => {
       window.removeEventListener('resize', updateScrollButtons);
     };
   }, [events]);
-  const [isLoggedIn] = useState(() => !!localStorage.getItem('access_token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('access_token'));
+  const [company, setCompany] = useState<{ id: number; name: string } | null>(null);
+
+  // Обновлять информацию о компании при монтировании и после логина
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('access_token'));
+    const profileStr = localStorage.getItem('profile');
+    if (profileStr) {
+      try {
+        const user = JSON.parse(profileStr);
+        setCompany(user.company && user.company.id ? user.company : null);
+      } catch {
+        setCompany(null);
+      }
+    } else {
+      setCompany(null);
+    }
+  }, []);
+
+  // Слушаем событие storage для обновления компании при логине в другом окне
+  useEffect(() => {
+    const handleStorage = () => {
+      setIsLoggedIn(!!localStorage.getItem('access_token'));
+      const profileStr = localStorage.getItem('profile');
+      if (profileStr) {
+        try {
+          const user = JSON.parse(profileStr);
+          setCompany(user.company && user.company.id ? user.company : null);
+        } catch {
+          setCompany(null);
+        }
+      } else {
+        setCompany(null);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollCards = (direction: 'left' | 'right') => {
@@ -151,24 +188,11 @@ const Home: React.FC = () => {
           <a href="/all-event-types">Browse Events</a>
           <a href="/create-event">Create Event</a>
           <a href="/profile">My tickets</a>
-          {(() => {
-            const profileStr = localStorage.getItem('profile');
-            let company;
-            try {
-              if (profileStr) {
-                const user = JSON.parse(profileStr);
-                company = user.company;
-              }
-            } catch {
-              // ignore JSON parse errors
-            }
-            if (isLoggedIn && company && company.id) {
-              return <a href={`/company/${company.id}`}>View Company{company.name ? `: ${company.name}` : ''}</a>;
-            } else if (isLoggedIn) {
-              return <a href="/register-company">Register Company</a>;
-            }
-            return null;
-          })()}
+          {isLoggedIn && company && company.id ? (
+            <a href={`/company/${company.id}`}>View Company{company.name ? `: ${company.name}` : ''}</a>
+          ) : isLoggedIn ? (
+            <a href="/register-company">Register Company</a>
+          ) : null}
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
           {isLoggedIn ? (
