@@ -29,6 +29,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiTags,
 } from '@nestjs/swagger';
 import { EventResponse } from './types/eventResponse.type';
 import { UpdateEventDto, UpdateEventDtoD } from './dto/updateEvent.dto';
@@ -36,6 +37,7 @@ import { JwtType } from 'src/auth/types/jwtType.type';
 import { AuthService } from 'src/auth/auth.service';
 import { GetEventsDto } from './dto/getEvents.dto';
 
+@ApiTags('Events')
 @Controller('events')
 export class EventController {
   constructor(

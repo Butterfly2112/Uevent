@@ -291,4 +291,8 @@ export class UsersService {
 
     return { following: following.map(toUserResponse), following_count };
   }
+
+  async getUserForService(userId: number): Promise<User | null> {
+    return await this.usersRepository.findOne({ where: { id: userId } });
+  }
 }

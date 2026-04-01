@@ -23,7 +23,6 @@ export class Comment {
 
   @ManyToOne(() => User, (user) => user.comments, {
     onDelete: 'CASCADE',
-    eager: true,
   })
   @JoinColumn({ name: 'author_id' })
   author: User;
@@ -33,11 +32,9 @@ export class Comment {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'parent_comment_id' })
-  parent: Comment;
+  parent: Comment | null;
 
-  @OneToMany(() => Comment, (comment) => comment.parent, {
-    eager: true,
-  })
+  @OneToMany(() => Comment, (comment) => comment.parent)
   children: Comment[];
 
   @Column()

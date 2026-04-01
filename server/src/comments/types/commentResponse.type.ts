@@ -14,7 +14,7 @@ export class CommentResponse {
   @ApiProperty({
     description: 'Author of comment',
   })
-  auhtor: UserResponse;
+  author: UserResponse;
 
   @ApiProperty({
     description: 'Parent comment this one is replying to, null if top-level',

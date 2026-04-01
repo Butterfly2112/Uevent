@@ -1,8 +1,7 @@
-import { Comment } from 'src/comments/entities/comment.entity';
-import { CommentResponse } from 'src/comments/types/commentResponse.type';
 import { SafeCompanyResponse } from 'src/companies/types/safeCompanyResponse.type';
 import { Event, EventStatus } from 'src/events/entities/event.entity';
 import { EventResponse } from 'src/events/types/eventResponse.type';
+import { buildCommentTree } from './comment.mapper';
 
 export function toEventResponse(
   event: Event,
@@ -64,9 +63,7 @@ export function toEventResponse(
       }),
 
     ...(event.comments && {
-      comments: event.comments.map((comment) =>
-        mapCommentToResponse(comment, event.id),
-      ),
+      comments: buildCommentTree(event.comments, event.id),
     }),
 
     ...(isPrivileged &&
@@ -86,28 +83,6 @@ export function toEventResponse(
       publish_date: event.publish_date,
       visitor_visibility: event.visitor_visibility,
     }),
-  };
-}
-
-function mapCommentToResponse(
-  comment: Comment,
-  eventId: number,
-): CommentResponse {
-  return {
-    id: comment.id,
-    event_id: eventId,
-    auhtor: {
-      id: comment.author.id,
-      login: comment.author.login,
-      username: comment.author.username,
-      avatar_url: comment.author.avatar_url,
-    },
-    content: comment.content,
-    created_at: comment.created_at,
-    parent: comment.parent ? ({ id: comment.parent.id } as any) : null,
-    children: comment.children
-      ? comment.children.map(mapCommentToResponse)
-      : [],
   };
 }
 

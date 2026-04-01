@@ -109,7 +109,10 @@ export class EventService {
         company: true,
         host: true,
         tickets: { user: true },
-        comments: true,
+        comments: {
+          parent: true,
+          author: true,
+        },
         promo_codes: true,
       },
     });
@@ -266,5 +269,13 @@ export class EventService {
       .getMany();
 
     return toVisibleEvents(events, { owner: false, admin: false }, userId);
+  }
+
+  async getEventForService(eventId: number): Promise<Event | null> {
+    return await this.eventRepository.findOne({
+      where: { id: eventId },
+      select: { host: { id: true } },
+      relations: { host: true },
+    });
   }
 }
