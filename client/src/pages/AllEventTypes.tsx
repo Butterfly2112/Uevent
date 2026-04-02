@@ -25,7 +25,9 @@ interface Event {
 
 const AllEventTypes: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
-  const [search, setSearch] = useState('');
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [searchHeader, setSearchHeader] = useState('');
+  const [searchMain, setSearchMain] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Advanced filter states
@@ -39,60 +41,57 @@ const AllEventTypes: React.FC = () => {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   // For admin/owner, always show all events (do not hide deleted companies)
-  // We'll set this dynamically after reading user info
-  const [hideDeletedCompanies, setHideDeletedCompanies] = useState(true);
-   const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [hideDeletedCompanies, setHideDeletedCompanies] = useState(false);
+
+  // Get user info from localStorage for permission checks
+  let user: { id: number; role: string } | null = null;
+  try {
+    const userStr = localStorage.getItem('profile');
+    if (userStr) user = JSON.parse(userStr);
+  } catch {
+    // Ignore JSON parse errors
+  }
+
+  // Function to check if current user can delete the event
+  const canDeleteEvent = (eventHostId: number) => {
+    if (!user) return false;
+    // Admins can delete any event, owners can delete their own
+    return user.role === 'admin' || user.id === eventHostId;
+  };
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  interface EventFilterParams {
-    search?: string;
-    format?: string;
-    theme?: string;
-    status?: string;
-    address?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    minPrice?: string;
-    maxPrice?: string;
-  }
+  useEffect(() => {
+    if (hideDeletedCompanies) {
+      setEvents(allEvents.filter((ev: Event) => ev.company && ev.companyId !== null));
+    } else {
+      setEvents(allEvents);
+    }
+  }, [hideDeletedCompanies, allEvents]);
 
-  const fetchEvents = async (paramsObj: EventFilterParams = {}) => {
+  const fetchEvents = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build query string from paramsObj
-      const params = new URLSearchParams();
-      if (paramsObj.search) params.append('search', paramsObj.search);
-      if (paramsObj.format) params.append('format', paramsObj.format);
-      if (paramsObj.theme) params.append('theme', paramsObj.theme);
-      if (paramsObj.status) params.append('status', paramsObj.status);
-      if (paramsObj.address) params.append('address', paramsObj.address);
-      if (paramsObj.dateFrom) params.append('dateFrom', paramsObj.dateFrom);
-      if (paramsObj.dateTo) params.append('dateTo', paramsObj.dateTo);
-      if (paramsObj.minPrice) params.append('minPrice', paramsObj.minPrice);
-      if (paramsObj.maxPrice) params.append('maxPrice', paramsObj.maxPrice);
-      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const apiUrl = import.meta.env.VITE_API_URL || '';
       const token = localStorage.getItem('access_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/events/search${queryStr}`, { headers });
+      const res = await fetch(`${apiUrl}/events/search?limit=100`, { headers });
       if (!res.ok) throw new Error('Failed to fetch events');
       const data = await res.json();
-      const allEvents = data.data || [];
-      const filteredEvents = allEvents;
-      if (hideDeletedCompanies) {
-          setEvents(filteredEvents.filter((ev: Event) => ev.company && ev.companyId !== null));
-      }
-        setAllEvents(allEvents);
-        setEvents(allEvents);
+        const allFetchedEvents = data.data || [];
+        setAllEvents(allFetchedEvents);
+        setEvents(allFetchedEvents);
       // Extract unique locations for dropdown
-      const locs = Array.from(new Set(allEvents.map((e: Event) => e.address).filter(Boolean))) as string[];
+      const locs = Array.from(new Set((data.data || []).map((e: Event) => e.address).filter(Boolean))) as string[];
       setLocations(locs);
     } catch (e: unknown) {
+      setEvents([]);
+      setAllEvents([]);
+      setLocations([]);
       if (e instanceof Error) {
         setError(e.message);
       } else {
@@ -102,55 +101,22 @@ const AllEventTypes: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
-  React.useEffect(() => {
-    let filtered = allEvents;
-    if (hideDeletedCompanies) {
-      filtered = filtered.filter((ev: Event) => ev.company && ev.companyId !== null);
+  // Filter events by header search only on Enter or button
+  const handleHeaderSearch = () => {
+    if (searchHeader.trim() === "") {
+      setEvents(allEvents);
+    } else {
+      const searchTerm = searchHeader.trim().toLowerCase();
+      setEvents(
+        allEvents.filter((ev: Event) =>
+          (ev.title && ev.title.toLowerCase().includes(searchTerm)) ||
+          (ev.description && ev.description.toLowerCase().includes(searchTerm))
+        )
+      );
     }
-    setEvents(filtered);
-  }, [allEvents, hideDeletedCompanies]);
-
-  const handleFilter = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Only send non-empty params
-    const params: EventFilterParams = {};
-    if (search) params.search = search;
-    if (format) params.format = format;
-    if (theme) params.theme = theme;
-    if (status) params.status = status;
-    if (address) params.address = address;
-    if (startDate) params.dateFrom = startDate;
-    if (endDate) params.dateTo = endDate;
-    if (minPrice) params.minPrice = minPrice;
-    if (maxPrice) params.maxPrice = maxPrice;
-    fetchEvents(params);
   };
-
-  // Get user info from localStorage for permission checks
-  let user = null;
-  try {
-    const userStr = localStorage.getItem('profile');
-    if (userStr) user = JSON.parse(userStr);
-  } catch {
-    // Ignore JSON parse errors
-  }
-
-  // If user is admin or owner, always show all events (do not hide deleted companies)
-  useEffect(() => {
-    if (user && (user.role === 'admin' || user.role === 'owner')) {
-      setHideDeletedCompanies(false);
-    }
-  }, [user]);
-
-  // Function to check if current user can delete the event
-  const canDeleteEvent = (eventHostId: number) => {
-    if (!user) return false;
-    // Admins can delete any event, owners can delete their own
-    return user.role === 'admin' || user.id === eventHostId;
-  };
-
-  // Delete event handler
   const handleDeleteEvent = async (eventId: number) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
@@ -183,18 +149,18 @@ const AllEventTypes: React.FC = () => {
             className="search-input"
             type="text"
             placeholder="Search events"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            value={searchHeader}
+            onChange={e => setSearchHeader(e.target.value)}
             style={{ minWidth: 180, background: '#fff', border: '1px solid #ffe066', borderRight: 'none', borderRadius: '20px 0 0 20px', padding: '8px 12px', fontSize: 16, color: '#222' }}
             onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  fetchEvents({ search });
-                }
-              }}
+              if (e.key === 'Enter') {
+                handleHeaderSearch();
+              }
+            }}
             />
             <button
               className="search-btn"
-              onClick={() => fetchEvents({ search })}
+              onClick={handleHeaderSearch}
               type="button"
               style={{ borderRadius: '0 20px 20px 0', border: '1px solid #ffe066', borderLeft: 'none', width: 38, height: 38, marginLeft: 0, background: 'linear-gradient(90deg, #ffe066 60%, #ffd700 100%)', boxShadow: '0 1px 6px #ffe066', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
             >
@@ -225,7 +191,25 @@ const AllEventTypes: React.FC = () => {
         top: 0,
         zIndex: 2
       }}>
-        <form onSubmit={handleFilter} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, width: '100%', justifyContent: 'center' }}>
+        <form
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, width: '100%', justifyContent: 'center' }}
+          onSubmit={e => {
+            e.preventDefault();
+            let filtered = allEvents;
+            if (format) filtered = filtered.filter(ev => ev.format === format);
+            if (theme) filtered = filtered.filter(ev => ev.theme === theme);
+            if (status) filtered = filtered.filter(ev => ev.status === status);
+            if (address) filtered = filtered.filter(ev => ev.address === address);
+            if (startDate) filtered = filtered.filter(ev => ev.start_date && ev.start_date >= startDate);
+            if (endDate) filtered = filtered.filter(ev => ev.end_date && ev.end_date <= endDate);
+            if (minPrice) filtered = filtered.filter(ev => typeof ev.price === 'number' && ev.price >= Number(minPrice));
+            if (maxPrice) filtered = filtered.filter(ev => typeof ev.price === 'number' && ev.price <= Number(maxPrice));
+            if (hideDeletedCompanies) {
+              filtered = filtered.filter(ev => ev.company && ev.companyId !== null);
+            }
+            setEvents(filtered);
+          }}
+        >
           <select
             value={format}
             onChange={e => setFormat(e.target.value)}
@@ -373,15 +357,18 @@ const AllEventTypes: React.FC = () => {
         <input
           type="text"
           placeholder="Search by title or description..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+          value={searchMain}
+          onChange={e => setSearchMain(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') {
-              // Фильтруем по названию и описанию на клиенте
-              setEvents(prev => prev.filter(ev =>
-                (ev.title && ev.title.toLowerCase().includes(search.trim().toLowerCase())) ||
-                (ev.description && ev.description.toLowerCase().includes(search.trim().toLowerCase()))
-              ));
+              // Filter by title and description on client, considering hideDeletedCompanies
+              setEvents(prev => prev.filter((ev: Event) => {
+                const matches =
+                  (ev.title && ev.title.toLowerCase().includes(searchMain.trim().toLowerCase())) ||
+                  (ev.description && ev.description.toLowerCase().includes(searchMain.trim().toLowerCase()));
+                const notDeleted = !hideDeletedCompanies || (ev.company && ev.companyId !== null);
+                return matches && notDeleted;
+              }));
             }
           }}
           style={{
@@ -398,10 +385,16 @@ const AllEventTypes: React.FC = () => {
         />
         <button
           className="search-btn"
-          onClick={() => setEvents(prev => prev.filter(ev =>
-            (ev.title && ev.title.toLowerCase().includes(search.trim().toLowerCase())) ||
-            (ev.description && ev.description.toLowerCase().includes(search.trim().toLowerCase()))
-          ))}
+          onClick={() => {
+            const searchTerm = searchMain.trim().toLowerCase();
+            setEvents(prev => prev.filter((ev: Event) => {
+              const matches =
+                (ev.title && ev.title.toLowerCase().includes(searchTerm)) ||
+                (ev.description && ev.description.toLowerCase().includes(searchTerm));
+              const notDeleted = !hideDeletedCompanies || (ev.company && ev.companyId !== null);
+              return matches && notDeleted;
+            }));
+          }}
           type="button"
           style={{
             borderRadius: '0 20px 20px 0',
@@ -484,7 +477,11 @@ const AllEventTypes: React.FC = () => {
               {(!event.company || event.companyId === null) ? (
                 <div style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 12 }}>This company was deleted</div>
               ) : (
-                canDeleteEvent((event as { host?: { id: number }; owner_id?: number }).host?.id || (event as { owner_id?: number }).owner_id || user?.id) && (
+                canDeleteEvent(
+                  ((event as { host?: { id: number }; owner_id?: number }).host?.id ??
+                  (event as { owner_id?: number }).owner_id ??
+                  (user ? user.id : 0))
+                ) && (
                   <button
                     onClick={() => handleDeleteEvent(event.id)}
                     style={{
