@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import Logout from '../components/Logout';
 import './Profile.css';
 import planetIcon from '../assets/planet.svg';
 import searchIcon from '../assets/search.svg';
+import readIcon from '../assets/read.png';
+import deleteIcon from '../assets/delete.png';
 
 const LogoutButtonStyled = () => <Logout />;
 
@@ -19,6 +20,14 @@ type UserState = {
   company?: Company;
 };
 
+type Notification = {
+  id: number;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+};
+
 const initialUser: UserState = {
   login: 'wepino',
   username: 'Wepino',
@@ -30,6 +39,9 @@ const Profile: React.FC = () => {
   const [user, setUser] = useState<UserState>(initialUser);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -80,6 +92,73 @@ const Profile: React.FC = () => {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+
+        const res = await fetch(
+            `http://localhost:3000/api/notifications/user/${profile.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        setNotifications(data);
+      } catch {
+        console.error('Failed to load notifications');
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const markAsRead = async (id: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+
+      await fetch(`http://localhost:3000/api/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setNotifications((prev) =>
+          prev.map((n) =>
+              n.id === id ? { ...n, is_read: true } : n
+          )
+      );
+    } catch {
+      console.error('Failed to mark as read');
+    }
+  };
+
+  const deleteNotification = async (id: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+
+      await fetch(`http://localhost:3000/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      console.error('Failed to delete notification');
+    }
+  };
 
   if (loading) {
     return <div className="profile-root"><div>Loading profile...</div></div>;
@@ -158,6 +237,55 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+      <div className="notifications-section">
+      <h3 className="notifications-title">Notifications</h3>
+
+      {notifLoading ? (
+          <div>Loading notifications...</div>
+      ) : notifications.length === 0 ? (
+          <div className="no-notifications">No notifications yet</div>
+      ) : (
+          <div className="notifications-list">
+            {notifications.map((notif) => (
+                <div
+                    key={notif.id}
+                    className={`notification-card ${notif.is_read? 'read' : 'unread'}`}
+                >
+                  <div className="notif-header">
+                    <span className="notif-title">{notif.title}</span>
+                    <span className="notif-date">
+  {notif.created_at
+      ? new Date(notif.created_at).toLocaleString()
+      : 'No date'}
+</span>
+                  </div>
+
+                  <div className="notif-message">{notif.message}</div>
+
+                  <div className="notif-actions">
+                    {!notif.is_read && (
+                        <button
+                            className="icon-btn"
+                            onClick={() => markAsRead(notif.id)}
+                            title="Mark as read"
+                        >
+                          <img src={readIcon} alt="read" />
+                        </button>
+                    )}
+
+                    <button
+                        className="icon-btn delete"
+                        onClick={() => deleteNotification(notif.id)}
+                        title="Delete"
+                    >
+                      <img src={deleteIcon} alt="delete" />
+                    </button>
+                  </div>
+                </div>
+            ))}
+          </div>
+      )}
+    </div>
 
       <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
         <div className="footer-row">

@@ -172,6 +172,43 @@ export class EmailService {
     });
   }
 
+  async sendRefundSuccess(
+    username: string,
+    email: string,
+    ticket: {
+      id: number;
+      eventTitle: string;
+      eventDate: Date;
+      refundAmount: number;
+    },
+  ) {
+    await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Refund Successful',
+      html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Refund Successful</h2>
+        <p>Hello ${username}, your refund has been processed.</p>
+
+        <hr />
+
+        <h3>Refund Details</h3>
+        <ul>
+          <li><b>Ticket ID:</b> ${ticket.id}</li>
+          <li><b>Event:</b> ${ticket.eventTitle}</li>
+          <li><b>Date:</b> ${new Date(ticket.eventDate).toLocaleString()}</li>
+          <li><b>Refund Amount:</b> $${ticket.refundAmount}</li>
+        </ul>
+
+        <p style="margin-top:20px;">
+          The amount will be returned according to your payment provider rules.
+        </p>
+      </div>
+    `,
+    });
+  }
+
   async sendPasswordRequest(username: string, token: string, email: string) {
     const host = this.configService.get('HOST_FOR_EMAIL');
     const port = this.configService.get('PORT_FOR_EMAIL');

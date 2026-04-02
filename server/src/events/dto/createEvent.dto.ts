@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
@@ -10,7 +11,9 @@ import {
 } from 'class-validator';
 import { EventFormat, EventStatus, EventTheme } from '../entities/event.entity';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
+import { ValidateNested, ArrayMaxSize } from 'class-validator';
+import { PromoCodeDto } from './promoCodeDto';
 
 export class CreateEventDto {
   @ApiProperty({
@@ -136,6 +139,24 @@ export class CreateEventDto {
   })
   @IsEnum(['everybody', 'attendees_only'])
   visitor_visibility: 'everybody' | 'attendees_only';
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => PromoCodeDto)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return plainToInstance(PromoCodeDto, parsed);
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
+  promoCodes?: PromoCodeDto[];
 }
 
 export class CreateEventDtoD extends OmitType(CreateEventDto, [

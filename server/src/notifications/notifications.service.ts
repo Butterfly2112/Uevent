@@ -21,13 +21,15 @@ export class NotificationsService {
   private notificationConfig = {
     [NotificationType.EVENT_NEWS]: { email: false },
     [NotificationType.NEW_EVENT]: { email: false },
-    [NotificationType.COMPANY_NEW_USER]: { email: false },
+    [NotificationType.COMPANY_NEWS]: { email: false },
+    [NotificationType.EVENT_NEW_PARTICIPANT]: { email: false },
     [NotificationType.EVENT_COMMENT]: { email: false },
     [NotificationType.COMMENT_REPLY]: { email: false },
 
     [NotificationType.TICKET_PURCHASE]: { email: true },
     [NotificationType.EVENT_REMINDER]: { email: true },
     [NotificationType.PAYMENT_SUCCESS]: { email: true },
+    [NotificationType.REFUND_SUCCESS]: { email: true },
   };
 
   // Створити сповіщення
@@ -62,6 +64,8 @@ export class NotificationsService {
   private buildNotificationContent(data: {
     type: NotificationType;
     event?: Event;
+    userName?: string;
+    companyName?: string;
   }) {
     switch (data.type) {
       case NotificationType.TICKET_PURCHASE:
@@ -94,6 +98,36 @@ export class NotificationsService {
           message: 'Someone replied to your comment',
         };
 
+      case NotificationType.REFUND_SUCCESS:
+        return {
+          title: 'Refund successful',
+          message: 'Your ticket money has been refunded',
+        };
+
+      case NotificationType.EVENT_NEWS:
+        return {
+          title: 'Event update',
+          message: `There is an update for "${data.event?.title}"`,
+        };
+
+      case NotificationType.NEW_EVENT:
+        return {
+          title: 'New event',
+          message: `A new event "${data.event?.title}" has been created`,
+        };
+
+      case NotificationType.COMPANY_NEWS:
+        return {
+          title: 'Company update',
+          message: `New update from ${data.companyName}`,
+        };
+
+      case NotificationType.EVENT_NEW_PARTICIPANT:
+        return {
+          title: 'New participant',
+          message: `${data.userName} joined your event "${data.event?.title}"`,
+        };
+
       default:
         return {
           title: 'Notification',
@@ -111,7 +145,8 @@ export class NotificationsService {
       const type = notification.type as
         | NotificationType.TICKET_PURCHASE
         | NotificationType.EVENT_REMINDER
-        | NotificationType.PAYMENT_SUCCESS;
+        | NotificationType.PAYMENT_SUCCESS
+        | NotificationType.REFUND_SUCCESS;
 
       switch (type) {
         case NotificationType.EVENT_REMINDER:
@@ -144,6 +179,21 @@ export class NotificationsService {
               eventTitle: ticket.eventTitle,
               eventDate: ticket.eventDate,
               pricePaid: ticket.price,
+            },
+          );
+          break;
+
+        case NotificationType.REFUND_SUCCESS:
+          if (!ticket) throw new Error('Ticket is required');
+
+          await this.emailService.sendRefundSuccess(
+            notification.user.login,
+            notification.user.email,
+            {
+              id: ticket.id,
+              eventTitle: ticket.eventTitle,
+              eventDate: ticket.eventDate,
+              refundAmount: ticket.price,
             },
           );
           break;

@@ -99,6 +99,6 @@ export class Event {
   @OneToMany(() => Comment, (comment) => comment.event)
   comments: Comment[];
 
-  @OneToMany(() => PromoCode, (promoCode) => promoCode.event)
+  @OneToMany(() => PromoCode, (promo) => promo.event)
   promo_codes: PromoCode[];
 }

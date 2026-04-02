@@ -16,6 +16,7 @@ export interface EventFormData {
   format?: string;
   theme?: string;
   visitor_visibility: 'everybody' | 'attendees_only';
+  promoCodes?: PromoCode[];
 }
 
 const statusOptions = [
@@ -49,6 +50,12 @@ const visitorVisibilityOptions = [
   { value: 'attendees_only', label: 'Attendees Only' },
 ];
 
+type PromoCode = {
+  code: string;
+  discount_percentage: number;
+  expires_at: string;
+};
+
 export const EventRegistrationForm: React.FC<{
   onSubmit: (data: EventFormData) => void;
   loading?: boolean;
@@ -56,6 +63,8 @@ export const EventRegistrationForm: React.FC<{
   onClose?: () => void;
 }> = ({ onSubmit, loading, error, onClose }) => {
   const formRef = useRef<HTMLFormElement>(null);
+
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
 
   useEffect(() => {
     if (formRef.current) {
@@ -79,6 +88,27 @@ export const EventRegistrationForm: React.FC<{
     publish_date: getNowDatetimeLocal(),
     visitor_visibility: 'everybody',
   });
+
+  const addPromoCode = () => {
+    if (promoCodes.length >= 5) return;
+
+    setPromoCodes((prev) => [
+      ...prev,
+      { code: '', discount_percentage: 0, expires_at: '' },
+    ]);
+  };
+
+  const updatePromoCode = (index: number, field: keyof PromoCode, value: string | number) => {
+    setPromoCodes((prev) =>
+        prev.map((p, i) =>
+            i === index ? { ...p, [field]: value } : p
+        )
+    );
+  };
+
+  const removePromoCode = (index: number) => {
+    setPromoCodes((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -153,6 +183,16 @@ export const EventRegistrationForm: React.FC<{
         }
       }
     });
+    if (promoCodes.length > 0) {
+      cleanedForm.promoCodes = JSON.stringify(
+          promoCodes.map(p => ({
+            code: p.code,
+            discount_percentage: Number(p.discount_percentage),
+            expires_at: new Date(p.expires_at).toISOString(),
+          }))
+      );
+    }
+    console.log(cleanedForm.promoCodes);
     onSubmit(cleanedForm as unknown as EventFormData);
   };
 
@@ -396,6 +436,83 @@ export const EventRegistrationForm: React.FC<{
         />
         <span style={{fontSize:16}}>Notify me about new attendees</span>
       </div>
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 10 }}>Promo Codes (max 5)</h3>
+
+          {promoCodes.map((promo, index) => (
+              <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    marginBottom: 10,
+                    alignItems: 'center',
+                  }}
+              >
+                <input
+                    type="text"
+                    placeholder="Code"
+                    value={promo.code}
+                    onChange={(e) =>
+                        updatePromoCode(index, 'code', e.target.value)
+                    }
+                    style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+                />
+
+                <input
+                    type="number"
+                    placeholder="%"
+                    min={1}
+                    max={100}
+                    value={promo.discount_percentage}
+                    onChange={(e) =>
+                        updatePromoCode(index, 'discount_percentage', Number(e.target.value))
+                    }
+                    style={{ width: 80, padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+                />
+
+                <input
+                    type="date"
+                    value={promo.expires_at}
+                    onChange={(e) =>
+                        updatePromoCode(index, 'expires_at', e.target.value)
+                    }
+                    style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+                />
+
+                <button
+                    type="button"
+                    onClick={() => removePromoCode(index)}
+                    style={{
+                      background: '#ffdddd',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                    }}
+                >
+                  ✕
+                </button>
+              </div>
+          ))}
+
+          {promoCodes.length < 5 && (
+              <button
+                  type="button"
+                  onClick={addPromoCode}
+                  style={{
+                    marginTop: 8,
+                    background: '#e6f0ff',
+                    border: '1px dashed #6c63ff',
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                  }}
+              >
+                + Add promo code
+              </button>
+          )}
+        </div>
       {/* Submit button */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10 }}>
         <button type="submit" disabled={loading || !form.title.trim() || !form.description.trim()} style={{ background: '#ffe066', border: 'none', borderRadius: 8, padding: '12px 36px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontSize: 18 }}>

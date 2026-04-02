@@ -33,6 +33,8 @@ SMTP_USER=ваша_пошта
 SMTP_PASS=пароль_який_дав_гугл
 HOST_FOR_EMAIL=хост_фронту_для_поштових_повідомлень
 PORT_FOR_EMAIL=порт_фронту_для_поштових_повідомлень
+STRIPE_SECRET_KEY=sk_test_51THnCzC8SyWrLBoc2kJx6KwTDDr34ZWLqOwbwbOYexzZKdUPPnzbAGApe6Y35j8N4B0ffUZuezocas6iuBJnaGQZ00XJg9fgSU
+USE_FAKE_PAYMENTS=true
 ```
 
 # Запуск
