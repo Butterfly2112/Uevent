@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -18,6 +19,8 @@ export class RegisterCompanyDto {
   @MaxLength(50, {
     message: 'Name of the company needs to be shorter than 50 characters',
   })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiProperty({
@@ -42,6 +45,8 @@ export class RegisterCompanyDto {
   @MaxLength(500, {
     message: 'Description cannot be longer than 500 characters',
   })
+  @IsNotEmpty()
+  @IsString()
   description: string;
 
   @ApiProperty({ description: 'Picture of the company profile' })

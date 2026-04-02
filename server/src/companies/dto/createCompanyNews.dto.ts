@@ -1,5 +1,12 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsArray, IsOptional, MaxLength, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateCompanyNewsDto {
   @ApiProperty({
@@ -8,6 +15,8 @@ export class CreateCompanyNewsDto {
   })
   @MaxLength(50, { message: 'Title cannot be longer than 50 characters' })
   @MinLength(3, { message: 'Title cannot be shorter than 3 characters' })
+  @IsNotEmpty()
+  @IsString()
   title: string;
 
   @ApiProperty({
@@ -16,6 +25,8 @@ export class CreateCompanyNewsDto {
   })
   @MaxLength(500, { message: 'Content cannot be longer than 500 characters' })
   @MinLength(3, { message: 'Content cannot be shorter than 3 characters' })
+  @IsString()
+  @IsNotEmpty()
   content: string;
 
   @ApiProperty({

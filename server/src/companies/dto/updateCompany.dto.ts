@@ -1,5 +1,12 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateCompanyDto {
   @ApiProperty({
@@ -13,6 +20,7 @@ export class UpdateCompanyDto {
     message: 'Name of the company needs to be shorter than 50 characters',
   })
   @IsOptional()
+  @IsString()
   name?: string;
 
   @ApiProperty({
@@ -20,6 +28,7 @@ export class UpdateCompanyDto {
     example: 'corporation@example.com',
   })
   @IsOptional()
+  @IsEmail()
   email_for_info?: string;
 
   @ApiProperty({
@@ -27,6 +36,7 @@ export class UpdateCompanyDto {
     example: '13, Willow Street',
   })
   @IsOptional()
+  @IsString()
   location?: string;
 
   @ApiProperty({
@@ -37,6 +47,7 @@ export class UpdateCompanyDto {
     message: 'Description cannot be longer than 500 characters',
   })
   @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiProperty({ description: 'Picture of the company profile' })

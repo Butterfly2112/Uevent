@@ -269,6 +269,7 @@ export class AuthService {
       .where('type IN (:...types)', {
         types: ['passwordChange', 'refreshJwtToken'],
       })
+      .andWhere('user_id = :userId', { userId: resetToken.user.id })
       .execute();
   }
 

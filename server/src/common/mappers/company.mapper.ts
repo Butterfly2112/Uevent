@@ -1,6 +1,7 @@
 import { SafeCompanyResponse } from 'src/companies/types/safeCompanyResponse.type';
 import { Company } from 'src/companies/entities/company.entity';
 import { toVisibleEvents } from './event.mapper';
+import { CompanyForAdminResponse } from 'src/companies/types/companyForAdminResponse.dto';
 
 export function mapCompanyProfileToDTO(
   dbCompany: Company,
@@ -35,5 +36,23 @@ export function mapCompanyProfileToDTO(
           updated_at: news.updated_at,
         }))
       : [],
+  };
+}
+
+export function mapCompanyForAdmin(company: Company): CompanyForAdminResponse {
+  return {
+    id: company.id,
+    owner: {
+      id: company.owner.id,
+      login: company.owner.login,
+      username: company.owner.username,
+      avatar_url: company.owner.avatar_url,
+    },
+    name: company.name,
+    email_for_info: company.email_for_info,
+    location: company.location,
+    description: company.description,
+    picture_url: company.picture_url,
+    created_at: company.created_at,
   };
 }

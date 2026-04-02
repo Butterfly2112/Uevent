@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -24,6 +25,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { UserDetailedInfo } from './types/userDetailedInfo.type';
 import { UpdateUserDto, UpdateUserDtoD } from './dto/updateUser.dto';
@@ -32,7 +34,6 @@ import { UploadService } from 'src/upload/upload.service';
 import { AuthGuard } from 'src/common/auth.guard';
 import { AvatarUploadInterceptor } from 'src/upload/upload.interceptor';
 import { toUserResponse } from 'src/common/mappers/user.mapper';
-import { UserResponse } from './types/userResponse.type';
 import {
   FollowersResponseDto,
   FollowingResponseDto,
@@ -140,9 +141,6 @@ export class UsersController {
       'If you use id for search than only user with exact id will be returned and' +
       'property search will be ignored completely',
   })
-  @ApiBody({
-    type: SearchUserDto,
-  })
   @ApiBearerAuth()
   @ApiOkResponse({
     description: 'Users retrieved successfully',
@@ -152,7 +150,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: 'User with such id not found' })
   @Get('search')
   @UseGuards(AuthGuard)
-  async searchUsers(@Req() req: RequestWithUser, @Body() dto: SearchUserDto) {
+  async searchUsers(@Req() req: RequestWithUser, @Query() dto: SearchUserDto) {
     return await this.usersService.searchUsers(req.user.role, dto);
   }
 
