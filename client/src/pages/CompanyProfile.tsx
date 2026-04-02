@@ -107,6 +107,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
       }
     };
   const [openNews, setOpenNews] = useState<News | null>(null);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -477,7 +478,28 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                     <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>{new Date(news.created_at).toLocaleDateString()}</div>
                     <div style={{ color: '#444', fontSize: 15, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{news.content.slice(0, 60)}{news.content.length > 60 ? '...' : ''}</div>
                     {news.images_url && news.images_url.length > 0 && (
-                      <img src={(news.images_url[0].startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + news.images_url[0] : news.images_url[0])} alt="news" style={{ maxWidth: 70, maxHeight: 70, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', marginTop: 2 }} />
+                      <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                        {news.images_url.slice(0, 3).map((img, idx) => {
+                          let imgSrc = img;
+                          if (img.startsWith('/uploads')) {
+                            const apiUrl = import.meta.env.VITE_API_URL || '';
+                            const baseUrl = apiUrl.replace(/\/api$/, '');
+                            imgSrc = baseUrl + img;
+                          }
+                          return (
+                            <img
+                              key={img}
+                              src={imgSrc}
+                              alt={`news-preview-${idx}`}
+                              style={{ maxWidth: 55, maxHeight: 55, borderRadius: 5, boxShadow: '0 1px 4px #ffe066', cursor: 'pointer' }}
+                              onClick={e => { e.stopPropagation(); setOpenNews(news); setLightboxImg(imgSrc); }}
+                            />
+                          );
+                        })}
+                        {news.images_url.length > 3 && (
+                          <span style={{ fontSize: 13, color: '#888', marginLeft: 4 }}>+{news.images_url.length - 3}</span>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))
@@ -630,17 +652,47 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             <div style={{ color: '#444', fontSize: 16, whiteSpace: 'pre-line' }}>{openNews.content}</div>
             {openNews.images_url && openNews.images_url.length > 0 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                {openNews.images_url.map((img) => {
+                {openNews.images_url.map((img, idx) => {
                   let imgSrc = img;
                   if (img.startsWith('/uploads')) {
                     const apiUrl = import.meta.env.VITE_API_URL || '';
                     const baseUrl = apiUrl.replace(/\/api$/, '');
                     imgSrc = baseUrl + img;
                   }
-                  return <img key={img} src={imgSrc} alt="news" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 6, boxShadow: '0 2px 8px #ffe066' }} />;
+                  return (
+                    <img
+                      key={img}
+                      src={imgSrc}
+                      alt={`news-full-${idx}`}
+                      style={{ maxWidth: 120, maxHeight: 120, borderRadius: 6, boxShadow: '0 2px 8px #ffe066', cursor: 'pointer' }}
+                      onClick={e => { e.stopPropagation(); setLightboxImg(imgSrc); }}
+                    />
+                  );
                 })}
               </div>
             )}
+
+          {/* Лайтбокс для увеличения фото */}
+          {lightboxImg && (
+            <div
+              onClick={() => setLightboxImg(null)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(0,0,0,0.7)',
+                zIndex: 3000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'zoom-out',
+              }}
+            >
+              <img src={lightboxImg} alt="full" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 4px 24px #ffe066' }} />
+            </div>
+          )}
           </div>
         </div>
       )}
