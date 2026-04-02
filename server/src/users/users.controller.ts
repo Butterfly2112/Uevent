@@ -37,6 +37,11 @@ import {
   FollowersResponseDto,
   FollowingResponseDto,
 } from './types/followResponse.type.dto';
+import { SearchUserDto } from './dto/searchUser.dto';
+import {
+  UserForAdminResponse,
+  UsersForAdminResponse,
+} from './types/userForAdmin.type';
 
 @Controller('users')
 export class UsersController {
@@ -126,6 +131,29 @@ export class UsersController {
   @UseGuards(AuthGuard)
   async getFollowing(@Req() req: RequestWithUser) {
     return await this.usersService.getFollowing(req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Search for users',
+    description:
+      'Allows admin to search for users using id or part of login, name, or email. ' +
+      'If you use id for search than only user with exact id will be returned and' +
+      'property search will be ignored completely',
+  })
+  @ApiBody({
+    type: SearchUserDto,
+  })
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Users retrieved successfully',
+    type: UsersForAdminResponse,
+  })
+  @ApiForbiddenResponse({ description: 'Only admin can use users search' })
+  @ApiNotFoundResponse({ description: 'User with such id not found' })
+  @Get('search')
+  @UseGuards(AuthGuard)
+  async searchUsers(@Req() req: RequestWithUser, @Body() dto: SearchUserDto) {
+    return await this.usersService.searchUsers(req.user.role, dto);
   }
 
   @ApiOperation({
