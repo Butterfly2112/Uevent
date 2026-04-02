@@ -12,6 +12,7 @@ export class RequestPasswordResetDto {
     description: 'Email of the user',
     example: 'crazy@example.com',
   })
+  @IsNotEmpty({ message: 'Email is required' })
   @IsEmail({}, { message: 'Invalid email' })
   email: string;
 }

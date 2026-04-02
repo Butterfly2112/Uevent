@@ -12,6 +12,7 @@ import {
   Delete,
   UploadedFiles,
   Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -52,6 +53,8 @@ import {
   UpdateCompanyNewsDto,
   UpdateCompanyNewsDtoD,
 } from './dto/updateCompanyNews.dto';
+import { searchCompanyDto } from './dto/searchCompany.dto';
+import { CompaniesForAdminResponse } from './types/companyForAdminResponse.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -93,6 +96,29 @@ export class CompanyController {
       { ...registerDto, picture_url },
       req.user.id,
     );
+  }
+
+  @ApiOperation({
+    summary: 'Search for companies',
+    description:
+      'Allows admin to search for companies using id or part of name, description, or email for info. ' +
+      'If you use id for search than only company with exact id will be returned and' +
+      'property search will be ignored completely',
+  })
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Companies returned successfully',
+    type: CompaniesForAdminResponse,
+  })
+  @ApiForbiddenResponse({ description: 'Only admin can use companies search' })
+  @ApiNotFoundResponse({ description: 'Company with such id not found' })
+  @Get('search')
+  @UseGuards(AuthGuard)
+  async searchCompanies(
+    @Req() req: RequestWithUser,
+    @Query() dto: searchCompanyDto,
+  ) {
+    return await this.companyService.searchCompany(req.user.role, dto);
   }
 
   @ApiOperation({

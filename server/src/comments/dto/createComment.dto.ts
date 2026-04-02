@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -15,5 +15,7 @@ export class CreateCommentDto {
   @MaxLength(250, {
     message: 'Comment content cannot be longer than 250 characters',
   })
+  @IsString()
+  @IsNotEmpty()
   content: string;
 }

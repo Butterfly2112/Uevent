@@ -17,7 +17,6 @@ import {
 } from 'src/common/mappers/user.mapper';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UploadService } from 'src/upload/upload.service';
-import { UserResponse } from './types/userResponse.type';
 import {
   FollowersResponseDto,
   FollowingResponseDto,

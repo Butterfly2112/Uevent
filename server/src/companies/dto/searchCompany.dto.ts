@@ -2,22 +2,22 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class SearchUserDto {
+export class searchCompanyDto {
   @ApiProperty({
     description:
-      'Id of the user you are searching for. If you use this property than' +
-      ' anything that goes to search is not being used and user is being found ONLY by exect id',
+      'Id of the company you are searching for. If you use this property than' +
+      ' anything that goes to search is not being used and company is being found ONLY by exect id',
     example: 1,
     required: false,
   })
   @IsOptional()
   @IsNumber()
   @Type(() => Number)
-  userId?: number;
+  companyId?: number;
 
   @ApiProperty({
-    description: 'part of user login/username/email',
-    example: 'mosquito',
+    description: 'part of company name/description/email_for_info',
+    example: 'Evil',
     required: false,
   })
   @IsOptional()

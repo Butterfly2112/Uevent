@@ -11,13 +11,18 @@ import { CompanyNews } from './entities/company-news.entity';
 import { SafeCompanyResponse } from './types/safeCompanyResponse.type';
 import { RegisterCompanyDto } from './dto/registerCompany.dto';
 import { UsersService } from 'src/users/users.service';
-import { mapCompanyProfileToDTO } from 'src/common/mappers/company.mapper';
+import {
+  mapCompanyForAdmin,
+  mapCompanyProfileToDTO,
+} from 'src/common/mappers/company.mapper';
 import { UploadService } from 'src/upload/upload.service';
 import { CreateCompanyNewsDto } from './dto/createCompanyNews.dto';
 import { CompanyNewsResponse } from './types/companyNewsResponse.type';
 import { UpdateCompanyNewsDto } from './dto/updateCompanyNews.dto';
 import { UpdateCompanyDto } from './dto/updateCompany.dto';
 import { EventStatus } from 'src/events/entities/event.entity';
+import { searchCompanyDto } from './dto/searchCompany.dto';
+import { CompaniesForAdminResponse } from './types/companyForAdminResponse.dto';
 
 @Injectable()
 export class CompanyService {
@@ -57,16 +62,16 @@ export class CompanyService {
 
   /**
    * Returns information about company. Information returned depends on the permissions that are being assigned depending on the permissions (guest/user/owner/admin)
-   * @param compahyId Company id
+   * @param companyId Company id
    * @param currentUserId Current user id who is searching
    * @returns company info
    */
   async getCompanyById(
-    compahyId: number,
+    companyId: number,
     currentUserId: number | null,
   ): Promise<SafeCompanyResponse> {
     const info = await this.companyRepository.findOne({
-      where: { id: compahyId },
+      where: { id: companyId },
       select: {
         owner: {
           id: true,
@@ -286,5 +291,34 @@ export class CompanyService {
       where: { id: companyId },
       relations: { owner: true, events: true },
     });
+  }
+
+  async searchCompany(
+    currentUserRole: string,
+    dto: searchCompanyDto,
+  ): Promise<CompaniesForAdminResponse> {
+    if (currentUserRole !== 'admin')
+      throw new ForbiddenException('Only admin allowed to perform such action');
+
+    if (dto.companyId) {
+      const company = await this.companyRepository.findOne({
+        where: { id: dto.companyId },
+        relations: { owner: true },
+      });
+      if (!company)
+        throw new NotFoundException('Company with this id not found');
+      return { companies: [mapCompanyForAdmin(company)], total: 1 };
+    }
+
+    const [companies, total] = await this.companyRepository
+      .createQueryBuilder('company')
+      .leftJoinAndSelect('company.owner', 'owner')
+      .andWhere(
+        '(company.name ILIKE :search OR company.description ILIKE :search OR company.email_for_info ILIKE :search)',
+        { search: `%${dto.search}%` },
+      )
+      .getManyAndCount();
+
+    return { companies: companies.map(mapCompanyForAdmin), total };
   }
 }

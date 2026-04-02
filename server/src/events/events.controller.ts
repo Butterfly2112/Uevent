@@ -50,6 +50,7 @@ export class EventController {
     summary: 'Get events for user based on following companies',
   })
   @Get('feed')
+  @ApiBearerAuth()
   @UseGuards(AuthGuard)
   async getUserFeed(@Req() req: RequestWithUser) {
     return await this.eventService.getUserFeed(req.user.id);

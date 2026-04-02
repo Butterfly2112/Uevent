@@ -2,6 +2,7 @@ import { Event } from '../../events/entities/event.entity';
 import { User } from '../../users/entities/user.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToMany,
@@ -39,4 +40,7 @@ export class Company {
 
   @OneToMany(() => CompanyNews, (news) => news.company)
   news: CompanyNews[];
+
+  @CreateDateColumn()
+  created_at: Date;
 }
