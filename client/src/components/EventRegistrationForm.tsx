@@ -1,4 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
+// Get address by coordinates using Google Maps Geocoding API
+async function getAddressFromCoords(lat: number, lng: number): Promise<string> {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return `${lat}, ${lng}`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === 'OK' && data.results.length > 0) {
+      return data.results[0].formatted_address;
+    }
+    return `${lat}, ${lng}`;
+  } catch {
+    return `${lat}, ${lng}`;
+  }
+}
 
 export interface EventFormData {
   notificate_owner?: boolean;
@@ -129,10 +145,10 @@ export const EventRegistrationForm: React.FC<{
       delete submitForm.ticket_limit;
     }
 
-    // Удаляем пустые или undefined необязательные поля
+    // Remove empty or undefined optional fields
     const cleanedForm: Record<string, unknown> = {};
     Object.entries(submitForm).forEach(([key, value]) => {
-      // Список обязательных полей
+      // List of required fields
       const requiredFields = [
         'title',
         'description',
@@ -272,8 +288,34 @@ export const EventRegistrationForm: React.FC<{
             value={form.address || ''}
             onChange={handleChange}
             placeholder="Address"
-            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17 }}
+            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, marginBottom: 8 }}
           />
+          {/* Карта для выбора адреса */}
+          <div style={{ width: '100%', height: 220, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 8px #ffe06655', marginTop: 4 }}>
+            <iframe
+              title="Pick location on map"
+              width="100%"
+              height="220"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(form.address || 'Kyiv, Ukraine')}&output=embed`}
+            ></iframe>
+            <div style={{position:'relative',top:'-220px',width:'100%',height:'220px',zIndex:2,cursor:'crosshair'}}
+              onClick={async (ev: React.MouseEvent<HTMLDivElement>) => {
+                const rect = (ev.target as HTMLDivElement).getBoundingClientRect();
+                const x = (ev.nativeEvent as MouseEvent).offsetX;
+                const y = (ev.nativeEvent as MouseEvent).offsetY;
+                const mapWidth = rect.width;
+                const lat = 50.45 + (0.02 * (110 - y) / 110); // rough estimate
+                const lng = 30.52 + (0.04 * (x - mapWidth/2) / (mapWidth/2));
+                const address = await getAddressFromCoords(lat, lng);
+                setForm(prev => ({ ...prev, address }));
+              }}
+              title="Click to select location"
+            ></div>
+          </div>
         </div>
       </div>
       {/* Format, Visitor Visibility */}

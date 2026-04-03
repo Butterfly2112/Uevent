@@ -14,6 +14,7 @@ interface Event {
   status?: string;
   publish_date?: string;
   companyId?: number | null;
+  address?: string;
 }
 
 interface News {
@@ -576,7 +577,20 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                   {event.status && (
                     <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Status: {event.status}</div>
                   )}
-                  {/* Delete button for admin/owner */}
+                  {event.address && (
+                    <div style={{ width: '100%', margin: '10px 0 0 0' }}>
+                      <iframe
+                        title={`Event Location Map ${event.id}`}
+                        width="100%"
+                        height="120"
+                        style={{ border: 0, borderRadius: 8, boxShadow: '0 1px 8px #ffe06655' }}
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(event.address)}&output=embed`}
+                      ></iframe>
+                    </div>
+                  )}
                   {(isOwner || isAdmin) && (
                     <button
                       onClick={() => handleDeleteEvent(event.id)}

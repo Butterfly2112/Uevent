@@ -182,7 +182,20 @@ const EventPage: React.FC = () => {
           <div style={{ marginBottom: 10 }}>
             <b>Start:</b> {new Date(event.start_date).toLocaleString()}<br />
             <b>End:</b> {new Date(event.end_date).toLocaleString()}<br />
-            {event.address && <><b>Address:</b> {event.address}<br /></>}
+            {event.address && <><b>Address:</b> {event.address}<br />
+              <div style={{ width: '100%', margin: '10px 0 0 0' }}>
+                <iframe
+                  title={`Event Location Map`}
+                  width="100%"
+                  height="220"
+                  style={{ border: 0, borderRadius: 10, boxShadow: '0 1px 8px #ffe06655' }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(event.address)}&output=embed`}
+                ></iframe>
+              </div>
+            </>}
             <b>Price:</b> {event.price}₴<br />
             {event.ticket_limit && <><b>Tickets limit:</b> {event.ticket_limit}<br /></>}
           </div>
