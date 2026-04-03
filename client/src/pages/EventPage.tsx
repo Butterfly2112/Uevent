@@ -1,3 +1,4 @@
+// ...existing code...
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Logout from '../components/Logout';
@@ -94,11 +95,87 @@ const EventPage: React.FC = () => {
     fetchEvent();
   }, [id]);
 
+  // State for organizer's other events (hooks должны быть до любых return)
+  const [companyEvents, setCompanyEvents] = useState<Event[]>([]);
+  const [companyEventsLoading, setCompanyEventsLoading] = useState(false);
+  const [companyEventsError, setCompanyEventsError] = useState('');
+
+  const isLoggedIn = !!localStorage.getItem('access_token');
+
+  useEffect(() => {
+    if (!event || !event.company || !event.company.id) return;
+    setCompanyEventsLoading(true);
+    setCompanyEventsError('');
+    const fetchCompanyEvents = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('access_token');
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${apiUrl}/events/search?companyId=${event.company?.id}`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        // Если сервер возвращает объект с массивом внутри (например, { data: [...] } или { results: [...] })
+        let eventsArr: Event[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.results)
+              ? data.results
+              : [];
+        // Исключить текущее событие
+        eventsArr = eventsArr.filter((ev: Event) => ev.id !== event.id);
+        setCompanyEvents(eventsArr);
+      } catch (e) {
+        setCompanyEventsError(e instanceof Error ? e.message : 'Loading error');
+      } finally {
+        setCompanyEventsLoading(false);
+      }
+    };
+    fetchCompanyEvents();
+  }, [event]);
+
+
+  // State for similar events
+  const [similarEvents, setSimilarEvents] = useState<Event[]>([]);
+  const [similarEventsLoading, setSimilarEventsLoading] = useState(false);
+  const [similarEventsError, setSimilarEventsError] = useState('');
+
+  // Fetch similar events by theme
+  useEffect(() => {
+    if (!event || !event.theme) return;
+    setSimilarEventsLoading(true);
+    setSimilarEventsError('');
+    const fetchSimilarEvents = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('access_token');
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${apiUrl}/events/search?theme=${encodeURIComponent(event.theme || '')}`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        let eventsArr: Event[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.results)
+              ? data.results
+              : [];
+        // Исключить текущее событие и события этой же компании
+        eventsArr = eventsArr.filter((ev: Event) => ev && event && ev.id !== event.id && (!event.company || !ev.company || ev.company.id !== event.company.id));
+        setSimilarEvents(eventsArr);
+      } catch (e) {
+        setSimilarEventsError(e instanceof Error ? e.message : 'Loading error');
+      } finally {
+        setSimilarEventsLoading(false);
+      }
+    };
+    fetchSimilarEvents();
+  }, [event]);
+
   if (loading) return <div style={{padding: 32}}>Loading event...</div>;
   if (error) return <div style={{padding: 32, color: 'red'}}>{error}</div>;
   if (!event) return <div style={{padding: 32}}>Event not found</div>;
 
-  const isLoggedIn = !!localStorage.getItem('access_token');
   return (
     <div className="home-root">
       <header className="home-header">
@@ -125,6 +202,8 @@ const EventPage: React.FC = () => {
             </>
           )}
         </div>
+
+
 
 
 
@@ -269,7 +348,7 @@ const EventPage: React.FC = () => {
 
       {/* Comments block */}
       <div style={{ margin: '24px auto 0 auto', maxWidth: 800 }}>
-        <h2 style={{ fontSize: 22, marginBottom: 10 }}>Comments</h2>
+        <h2 style={{ fontSize: 22, marginBottom: 10, color: 'rgb(62, 62, 62)' }}>Comments</h2>
         {event.comments && event.comments.length > 0 ? (
           <CommentTree comments={event.comments} eventId={event.id} level={1} onCommentChanged={async () => {
             // Reload event after comment change
@@ -280,9 +359,118 @@ const EventPage: React.FC = () => {
             if (res.ok) setEvent(await res.json());
           }} />
         ) : (
-          <div style={{ color: '#aaa', fontSize: 16 }}>No comments yet</div>
+          <div style={{ color: '#8b8a8a', fontSize: 16 }}>No comments yet</div>
         )}
       </div>
+
+      {/* Organizer's other events + Similar events side by side */}
+      {event.company && event.company.id && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 24,
+          maxWidth: 1200,
+          margin: '32px auto 0 auto',
+          justifyContent: 'center',
+        }}>
+          {/* Other events by this organizer */}
+          <div style={{
+            flex: '1 1 350px',
+            minWidth: 320,
+            maxWidth: 500,
+            background: '#f7f7f7',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px #e0e0e0',
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
+            <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Other events by this organizer</h2>
+            {companyEventsLoading ? (
+              <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
+            ) : companyEventsError ? (
+              <div style={{ color: 'red', fontSize: 16 }}>{companyEventsError}</div>
+            ) : companyEvents.length === 0 ? (
+              <div style={{ color: '#aaa', fontSize: 16 }}>No other events by this organizer.</div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
+                {companyEvents.map(ev => {
+                  let imgSrc = '';
+                  if (ev.poster_url && ev.poster_url !== 'default') {
+                    imgSrc = ev.poster_url;
+                    if (imgSrc.startsWith('/uploads')) {
+                      const apiUrl = import.meta.env.VITE_API_URL || '';
+                      const baseUrl = apiUrl.replace(/\/api$/, '');
+                      imgSrc = baseUrl + imgSrc;
+                    }
+                  } else {
+                    imgSrc = '/default-event.png';
+                  }
+                  return (
+                    <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                      <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
+                      {ev.end_date && (
+                        <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {/* Similar events */}
+          <div style={{
+            flex: '1 1 350px',
+            minWidth: 320,
+            maxWidth: 500,
+            background: '#f7f7f7',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px #e0e0e0',
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
+            <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Similar Events</h2>
+            {similarEventsLoading ? (
+              <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
+            ) : similarEventsError ? (
+              <div style={{ color: 'red', fontSize: 16 }}>{similarEventsError}</div>
+            ) : similarEvents.length === 0 ? (
+              <div style={{ color: '#aaa', fontSize: 16 }}>No similar events.</div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
+                {similarEvents.map((ev: Event) => {
+                  let imgSrc = '';
+                  if (ev.poster_url && ev.poster_url !== 'default') {
+                    imgSrc = ev.poster_url;
+                    if (imgSrc.startsWith('/uploads')) {
+                      const apiUrl = import.meta.env.VITE_API_URL || '';
+                      const baseUrl = apiUrl.replace(/\/api$/, '');
+                      imgSrc = baseUrl + imgSrc;
+                    }
+                  } else {
+                    imgSrc = '/default-event.png';
+                  }
+                  return (
+                    <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                      <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
+                      {ev.end_date && (
+                        <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <footer className="home-footer">
         <div className="footer-row">
@@ -406,7 +594,6 @@ function CommentTree(props: { comments: Comment[]; onCommentChanged: () => void;
                 <span style={{ color: '#888', fontSize: 13, marginLeft: 4 }}>@{comment.author.login}</span>
               )}
               <span style={{ color: '#b7b7b7', fontSize: 13, marginLeft: 8 }}>{new Date(comment.created_at || comment.createdAt || '').toLocaleString()}</span>
-              {/* Кнопки для 3 уровня: Edit/Delete в 2 ряда, Reply скрыт */}
               {level === 3 ? (
                 <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <div style={{ display: 'flex', gap: 6 }}>
