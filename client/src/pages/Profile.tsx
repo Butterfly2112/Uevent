@@ -1,4 +1,6 @@
+import planetIcon from '../assets/planet.svg';
 import React, { useState, useEffect } from 'react';
+import { fetchWithAuth } from '../components/fetchWithAuth';
 import Logout from '../components/Logout';
 import './Profile.css';
 import { getAvatarUrl } from '../components/getAvatarUrl';
@@ -63,7 +65,7 @@ const Profile: React.FC = () => {
           setLoading(false);
           return;
         }
-        const response = await fetch('http://localhost:3000/api/auth/profile', {
+        const response = await fetchWithAuth('http://localhost:3000/api/auth/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -103,7 +105,7 @@ const Profile: React.FC = () => {
           setUserEventsError(null);
           try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-            const eventsRes = await fetch(`${apiUrl}/events/search?companyId=${data.company.id}`, {
+            const eventsRes = await fetchWithAuth(`${apiUrl}/events/search?companyId=${data.company.id}`, {
               headers: { 'Authorization': `Bearer ${token}` },
             });
             if (!eventsRes.ok) throw new Error(await eventsRes.text());
@@ -137,7 +139,7 @@ const Profile: React.FC = () => {
         const token = localStorage.getItem('access_token');
         const profile = JSON.parse(localStorage.getItem('profile') || '{}');
 
-        const res = await fetch(
+        const res = await fetchWithAuth(
             `http://localhost:3000/api/notifications/user/${profile.id}`,
             {
               headers: {
@@ -164,7 +166,7 @@ const Profile: React.FC = () => {
     try {
       const token = localStorage.getItem('access_token');
 
-      await fetch(`http://localhost:3000/api/notifications/${id}/read`, {
+      await fetchWithAuth(`http://localhost:3000/api/notifications/${id}/read`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -185,7 +187,7 @@ const Profile: React.FC = () => {
     try {
       const token = localStorage.getItem('access_token');
 
-      await fetch(`http://localhost:3000/api/notifications/${id}`, {
+      await fetchWithAuth(`http://localhost:3000/api/notifications/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -216,6 +218,12 @@ const Profile: React.FC = () => {
     return <div className="profile-root"><div>Loading profile...</div></div>;
   }
   if (error) {
+    if (error === 'No authorization token') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('profile');
+      window.location.href = '/';
+      return null;
+    }
     return <div className="profile-root"><div style={{color: 'red'}}>{error}</div></div>;
   }
 
@@ -250,7 +258,7 @@ const Profile: React.FC = () => {
         formData.append('username', editUsername);
         if (emailChanged) formData.append('email', editEmail);
         formData.append('file', editAvatar);
-        res = await fetch(`${apiUrl}/users/${userId}`, {
+        res = await fetchWithAuth(`${apiUrl}/users/${userId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -261,7 +269,7 @@ const Profile: React.FC = () => {
         const body: Record<string, string> = { username: editUsername };
         if (emailChanged) body.email = editEmail;
         if (emailChanged) body.email = editEmail;
-        res = await fetch(`${apiUrl}/users/${userId}`, {
+        res = await fetchWithAuth(`${apiUrl}/users/${userId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -298,10 +306,13 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="profile-root">
+    <div className="profile-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="home-header">
         <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
-          <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
+          <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111', display: 'flex', alignItems: 'center', gap: 8 }}>
+            Uevent
+            <img src={planetIcon} alt="planet" style={{ width: 28, height: 28, marginLeft: 6, verticalAlign: 'middle' }} />
+          </span>
         </a>
         <nav className="main-nav">
           <a href="/">Home</a>
@@ -559,13 +570,13 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
+      <footer className="home-footer" style={{ width: '100%', margin: 0, marginTop: 'auto' }}>
         <div className="footer-row">
           <a href="/all-event-types">All events</a>
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
-        <div className="footer-row copyright" style={{ fontWeight: 400 }}>© 2026 Uevent</div>
+        <div className="footer-row copyright" style={{ fontWeight: 400, marginRight: 30, textAlign: 'left' }}>© 2026 Uevent</div>
       </footer>
     </div>
   );

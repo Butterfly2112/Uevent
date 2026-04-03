@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Home.css';
 
 const Login: React.FC = () => {
@@ -10,6 +10,26 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Google OAuth: обработка токена из query
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('access_token', token);
+      // Можно сразу получить профиль
+      fetch('http://localhost:3000/api/auth/profile', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(profile => {
+          if (profile) localStorage.setItem('profile', JSON.stringify(profile));
+          navigate('/');
+        });
+    }
+  }, [location, navigate]);
 
   const validate = () => {
     if (!form.loginOrEmail) return 'Login or Email is required';
@@ -130,6 +150,29 @@ const Login: React.FC = () => {
           </button>
           {error && <div style={{ color: '#dc2626', marginTop: 8, fontSize: 14, textAlign: 'center' }}>{error}</div>}
         </form>
+        <div style={{ margin: '24px 0 0 0', textAlign: 'center' }}>
+          <div style={{ marginBottom: 8, color: '#888' }}>or</div>
+          <a
+            href={(import.meta.env.VITE_API_URL || 'http://localhost:3000/api') + '/auth/google'}
+            style={{
+              display: 'inline-block',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              padding: '10px 18px',
+              fontSize: 16,
+              color: '#222',
+              textDecoration: 'none',
+              boxShadow: '0 1px 4px #e0e0e0',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'background 0.2s',
+            }}
+          >
+            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ width: 20, height: 20, marginRight: 10, verticalAlign: 'middle' }} />
+            Sign in with Google
+          </a>
+        </div>
       </div>
     </div>
   );

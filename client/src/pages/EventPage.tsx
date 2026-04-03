@@ -316,21 +316,21 @@ const EventPage: React.FC = () => {
         justifyContent: 'center',
       }}>
         {/* Other events by this organizer */}
-        <div style={{
-          flex: '1 1 350px',
-          minWidth: 320,
-          maxWidth: 500,
-          background: '#f7f7f7',
-          borderRadius: 16,
-          boxShadow: '0 2px 8px #e0e0e0',
-          padding: 28,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Other events by this organizer</h2>
-          {event.company && event.company.id ? (
-            companyEventsLoading ? (
+        {event.company && event.company.id ? (
+          <div style={{
+            flex: '1 1 350px',
+            minWidth: 320,
+            maxWidth: 500,
+            background: '#f7f7f7',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px #e0e0e0',
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
+            <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Other events by this organizer</h2>
+            {companyEventsLoading ? (
               <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
             ) : companyEventsError ? (
               <div style={{ color: 'red', fontSize: 16 }}>{companyEventsError}</div>
@@ -362,11 +362,9 @@ const EventPage: React.FC = () => {
                   );
                 })}
               </div>
-            )
-          ) : (
-            <div style={{ color: '#aaa', fontSize: 16 }}>No organizer for this event.</div>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
         {/* Similar events */}
         <div style={{
           flex: '1 1 350px',
@@ -381,42 +379,38 @@ const EventPage: React.FC = () => {
           alignItems: 'center',
         }}>
           <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Similar Events</h2>
-          {event.company && event.company.id ? (
-            similarEventsLoading ? (
-              <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
-            ) : similarEventsError ? (
-              <div style={{ color: 'red', fontSize: 16 }}>{similarEventsError}</div>
-            ) : similarEvents.length === 0 ? (
-              <div style={{ color: '#aaa', fontSize: 16 }}>No similar events.</div>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
-                {similarEvents.map((ev: Event) => {
-                  let imgSrc = '';
-                  if (ev.poster_url && ev.poster_url !== 'default') {
-                    imgSrc = ev.poster_url;
-                    if (imgSrc.startsWith('/uploads')) {
-                      const apiUrl = import.meta.env.VITE_API_URL || '';
-                      const baseUrl = apiUrl.replace(/\/api$/, '');
-                      imgSrc = baseUrl + imgSrc;
-                    }
-                  } else {
-                    imgSrc = '/default-event.png';
-                  }
-                  return (
-                    <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
-                      <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
-                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
-                      {ev.end_date && (
-                        <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
-                      )}
-                    </a>
-                  );
-                })}
-              </div>
-            )
+          {similarEventsLoading ? (
+            <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
+          ) : similarEventsError ? (
+            <div style={{ color: 'red', fontSize: 16 }}>{similarEventsError}</div>
+          ) : similarEvents.length === 0 ? (
+            <div style={{ color: '#aaa', fontSize: 16 }}>No similar events.</div>
           ) : (
-            <div style={{ color: '#aaa', fontSize: 16 }}>No similar events (no organizer).</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
+              {similarEvents.map((ev: Event) => {
+                let imgSrc = '';
+                if (ev.poster_url && ev.poster_url !== 'default') {
+                  imgSrc = ev.poster_url;
+                  if (imgSrc.startsWith('/uploads')) {
+                    const apiUrl = import.meta.env.VITE_API_URL || '';
+                    const baseUrl = apiUrl.replace(/\/api$/, '');
+                    imgSrc = baseUrl + imgSrc;
+                  }
+                } else {
+                  imgSrc = '/default-event.png';
+                }
+                return (
+                  <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                    <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                    <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
+                    {ev.end_date && (
+                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

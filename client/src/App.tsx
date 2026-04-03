@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Profile from './pages/Profile';
 import ConfirmEmail from './pages/ConfirmEmail';
 import AllEventTypes from './pages/AllEventTypes';
-import Faqs from './pages/Faqs';
 import HowItWorks from './pages/HowItWorks';
 import AboutUs from './pages/AboutUs';
 import RegisterCompany from './pages/RegisterCompany';
@@ -24,7 +23,6 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/all-event-types" element={<AllEventTypes />} />
-        <Route path="/faqs" element={<Faqs />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/register-company" element={<RegisterCompany />} />
