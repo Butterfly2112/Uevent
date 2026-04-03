@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
-import Logout from '../components/Logout';
+
 import './Profile.css';
 import planetIcon from '../assets/planet.svg';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
 interface Event {
   id: number;
@@ -256,7 +257,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
     }
   };
 
-  const isLoggedIn = !!localStorage.getItem('access_token');
+
 
   return (
     <div className="company-root" style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #f9f7ed 0%, #f3eecb 100%)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -273,16 +274,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
           <a href="/create-event">Create Event</a>
           <a href="/profile">Profile</a>
         </nav>
-        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          {isLoggedIn ? (
-            <Logout />
-          ) : (
-            <>
-              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
-              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
-            </>
-          )}
-        </div>
+        <HeaderUserBlock />
       </header>
 
       <div className="profile-header" style={{ background: '#f7f48b', boxShadow: '0 2px 16px rgba(0,0,0,0.04)', padding: '32px 0 24px 0', display: 'flex', alignItems: 'center', gap: 32, position: 'relative' }}>

@@ -1,9 +1,8 @@
-// ...existing code...
+import planetIcon from '../assets/planet.svg';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Logout from '../components/Logout';
-import planetIcon from '../assets/planet.svg';
-
+import { getAvatarUrl } from '../components/getAvatarUrl';
 
 interface Ticket {
   id: number;
@@ -100,7 +99,7 @@ const EventPage: React.FC = () => {
   const [companyEventsLoading, setCompanyEventsLoading] = useState(false);
   const [companyEventsError, setCompanyEventsError] = useState('');
 
-  const isLoggedIn = !!localStorage.getItem('access_token');
+
 
   useEffect(() => {
     if (!event || !event.company || !event.company.id) return;
@@ -191,63 +190,7 @@ const EventPage: React.FC = () => {
           <a href="/create-event">Create Event</a>
           <a href="/profile">Profile</a>
         </nav>
-
-        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          {isLoggedIn ? (
-            <Logout />
-          ) : (
-            <>
-              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
-              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
-            </>
-          )}
-        </div>
-
-
-
-
-
-
-        {/* Tickets block */}
-        {event.tickets && event.tickets.length > 0 && (
-          <div style={{ marginTop: 32 }}>
-            <h2 style={{ fontSize: 22, marginBottom: 10 }}>Attendees</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
-              {event.tickets.map(ticket => (
-                <div key={ticket.id} style={{ background: '#f7f7f7', borderRadius: 10, padding: 12, minWidth: 180, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 4px #ffe06655' }}>
-                  {ticket.user.avatar_url ? (
-                    <img src={ticket.user.avatar_url} alt={ticket.user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
-                  ) : (
-                    <span style={{ fontSize: 28 }}>👤</span>
-                  )}
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{ticket.user.username || ticket.user.login}</div>
-                    {ticket.price_paid !== undefined && <div style={{ color: '#888', fontSize: 13 }}>Paid: {ticket.price_paid}₴</div>}
-                    {ticket.status && <div style={{ color: '#aaa', fontSize: 12 }}>Status: {ticket.status}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Promo codes block */}
-        {event.promo_codes && event.promo_codes.length > 0 && (
-          <div style={{ marginTop: 32 }}>
-            <h2 style={{ fontSize: 22, marginBottom: 10 }}>Promo Codes</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
-              {event.promo_codes.map(promo => (
-                <div key={promo.id} style={{ background: '#e6f7ff', borderRadius: 10, padding: 12, minWidth: 180, boxShadow: '0 1px 4px #2a7ae255' }}>
-                  <div style={{ fontWeight: 700, fontSize: 18 }}>{promo.code}</div>
-                  <div style={{ color: '#2a7ae2', fontSize: 15 }}>-{promo.discount_percentage}%</div>
-                  <div style={{ color: '#888', fontSize: 13 }}>Expires: {new Date(promo.expires_at).toLocaleDateString()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-
+        <HeaderUserBlock />
       </header>
 
 
@@ -364,30 +307,30 @@ const EventPage: React.FC = () => {
       </div>
 
       {/* Organizer's other events + Similar events side by side */}
-      {event.company && event.company.id && (
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 24,
+        maxWidth: 1200,
+        margin: '32px auto 0 auto',
+        justifyContent: 'center',
+      }}>
+        {/* Other events by this organizer */}
         <div style={{
+          flex: '1 1 350px',
+          minWidth: 320,
+          maxWidth: 500,
+          background: '#f7f7f7',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px #e0e0e0',
+          padding: 28,
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: 24,
-          maxWidth: 1200,
-          margin: '32px auto 0 auto',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}>
-          {/* Other events by this organizer */}
-          <div style={{
-            flex: '1 1 350px',
-            minWidth: 320,
-            maxWidth: 500,
-            background: '#f7f7f7',
-            borderRadius: 16,
-            boxShadow: '0 2px 8px #e0e0e0',
-            padding: 28,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}>
-            <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Other events by this organizer</h2>
-            {companyEventsLoading ? (
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Other events by this organizer</h2>
+          {event.company && event.company.id ? (
+            companyEventsLoading ? (
               <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
             ) : companyEventsError ? (
               <div style={{ color: 'red', fontSize: 16 }}>{companyEventsError}</div>
@@ -419,23 +362,27 @@ const EventPage: React.FC = () => {
                   );
                 })}
               </div>
-            )}
-          </div>
-          {/* Similar events */}
-          <div style={{
-            flex: '1 1 350px',
-            minWidth: 320,
-            maxWidth: 500,
-            background: '#f7f7f7',
-            borderRadius: 16,
-            boxShadow: '0 2px 8px #e0e0e0',
-            padding: 28,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}>
-            <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Similar Events</h2>
-            {similarEventsLoading ? (
+            )
+          ) : (
+            <div style={{ color: '#aaa', fontSize: 16 }}>No organizer for this event.</div>
+          )}
+        </div>
+        {/* Similar events */}
+        <div style={{
+          flex: '1 1 350px',
+          minWidth: 320,
+          maxWidth: 500,
+          background: '#f7f7f7',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px #e0e0e0',
+          padding: 28,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>Similar Events</h2>
+          {event.company && event.company.id ? (
+            similarEventsLoading ? (
               <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
             ) : similarEventsError ? (
               <div style={{ color: 'red', fontSize: 16 }}>{similarEventsError}</div>
@@ -467,10 +414,12 @@ const EventPage: React.FC = () => {
                   );
                 })}
               </div>
-            )}
-          </div>
+            )
+          ) : (
+            <div style={{ color: '#aaa', fontSize: 16 }}>No similar events (no organizer).</div>
+          )}
         </div>
-      )}
+      </div>
 
       <footer className="home-footer">
         <div className="footer-row">
@@ -584,8 +533,8 @@ function CommentTree(props: { comments: Comment[]; onCommentChanged: () => void;
             maxWidth: 700,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              {comment.author.avatar_url && comment.author.avatar_url !== 'default' ? (
-                <img src={comment.author.avatar_url} alt={comment.author.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', background: '#eee', border: '1.5px solid #ffe066' }} />
+              {getAvatarUrl(comment.author.avatar_url) ? (
+                <img src={getAvatarUrl(comment.author.avatar_url)} alt={comment.author.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', background: '#eee', border: '1.5px solid #ffe066' }} />
               ) : (
                 <span style={{ fontSize: 28, background: '#eee', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</span>
               )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import './Home.css';
 import planetIcon from '../assets/planet.svg';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
 const AboutUs: React.FC = () => (
   <div className="home-root" style={{ minHeight: '100vh', background: '#f9f9ed', display: 'flex', flexDirection: 'column' }}>
@@ -17,6 +18,7 @@ const AboutUs: React.FC = () => (
         <a href="/create-event">Create Event</a>
         <a href="/profile">Profile</a>
       </nav>
+      <HeaderUserBlock />
     </header>
     <main className="main-content" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 0' }}>
       <div style={{ width: '100%', maxWidth: 1100, background: 'rgba(2, 2, 2, 0.12)', borderRadius: 36, boxShadow: '0 2px 8px #e0e0c0', padding: '40px 48px', margin: '0 16px', display: 'flex', flexDirection: 'row', gap: 32, alignItems: 'flex-start' }}>

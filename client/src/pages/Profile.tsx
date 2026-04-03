@@ -1,8 +1,10 @@
 
+
 import React, { useState, useEffect } from 'react';
 import Logout from '../components/Logout';
 import './Profile.css';
-import planetIcon from '../assets/planet.svg';
+import { getAvatarUrl } from '../components/getAvatarUrl';
+
 
 const LogoutButtonStyled = () => <Logout />;
 
@@ -15,6 +17,7 @@ type UserState = {
   login: string;
   username: string;
   email: string;
+  avatar_url?: string;
   company?: Company;
 };
 
@@ -29,6 +32,18 @@ const Profile: React.FC = () => {
   const [user, setUser] = useState<UserState>(initialUser);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // State for user's events
+  interface Event {
+    id: number;
+    title: string;
+    start_date: string;
+    end_date?: string;
+    poster_url?: string;
+  }
+  const [userEvents, setUserEvents] = useState<Event[]>([]);
+  const [userEventsLoading, setUserEventsLoading] = useState(false);
+  const [userEventsError, setUserEventsError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -61,6 +76,7 @@ const Profile: React.FC = () => {
           login: data.login,
           username: data.username,
           email: data.email,
+          avatar_url: data.avatar_url,
           company: data.company,
         });
         // Store user profile in localStorage for owner checks in CompanyProfile and Home
@@ -69,8 +85,34 @@ const Profile: React.FC = () => {
           login: data.login,
           username: data.username,
           email: data.email,
+          avatar_url: data.avatar_url,
           company: data.company,
         }));
+        // If user is organizer, fetch their events
+        if (data.company && data.company.id) {
+          setUserEventsLoading(true);
+          setUserEventsError(null);
+          try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+            const eventsRes = await fetch(`${apiUrl}/events/search?companyId=${data.company.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!eventsRes.ok) throw new Error(await eventsRes.text());
+            const eventsData = await eventsRes.json();
+            const eventsArr: Event[] = Array.isArray(eventsData)
+              ? eventsData
+              : Array.isArray(eventsData.data)
+                ? eventsData.data
+                : Array.isArray(eventsData.results)
+                  ? eventsData.results
+                  : [];
+            setUserEvents(eventsArr);
+          } catch (e) {
+            setUserEventsError(e instanceof Error ? e.message : 'Loading error');
+          } finally {
+            setUserEventsLoading(false);
+          }
+        }
       } catch {
         setError('Network error');
       } finally {
@@ -80,79 +122,317 @@ const Profile: React.FC = () => {
     fetchProfile();
   }, []);
 
+
+  // Inline edit state (must be before any return)
+  const [editMode, setEditMode] = useState(false);
+  const [editUsername, setEditUsername] = useState(user.username);
+  const [editEmail, setEditEmail] = useState(user.email);
+  const [editAvatar, setEditAvatar] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | undefined>(user.avatar_url);
+
+  useEffect(() => {
+    setEditAvatarPreview(user.avatar_url);
+  }, [user.avatar_url]);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   if (loading) {
     return <div className="profile-root"><div>Loading profile...</div></div>;
   }
   if (error) {
     return <div className="profile-root"><div style={{color: 'red'}}>{error}</div></div>;
   }
-  // Header as on all pages
-  const isLoggedIn = !!localStorage.getItem('access_token');
+
+  const handleEdit = () => {
+    setEditMode(true);
+    setEditUsername(user.username);
+    setEditEmail(user.email);
+    setEditAvatar(null);
+    setEditAvatarPreview(user.avatar_url);
+    setEditError(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditMode(false);
+    setEditError(null);
+    setEditAvatar(null);
+    setEditAvatarPreview(user.avatar_url);
+  };
+
+  const handleEditSave = async () => {
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) throw new Error('No authorization token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const userId = JSON.parse(localStorage.getItem('profile') || '{}').id;
+      let res;
+      const emailChanged = editEmail !== user.email;
+      if (editAvatar) {
+        const formData = new FormData();
+        formData.append('username', editUsername);
+        if (emailChanged) formData.append('email', editEmail);
+        formData.append('file', editAvatar);
+        res = await fetch(`${apiUrl}/users/${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else {
+        const body: Record<string, string> = { username: editUsername };
+        if (emailChanged) body.email = editEmail;
+        if (emailChanged) body.email = editEmail;
+        res = await fetch(`${apiUrl}/users/${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        });
+      }
+      if (!res.ok) throw new Error(await res.text());
+      const updated = await res.json();
+      setUser((prev) => ({ ...prev, username: updated.username, email: updated.email, avatar_url: updated.avatar_url }));
+      setEditAvatarPreview(updated.avatar_url);
+      localStorage.setItem('profile', JSON.stringify({ ...JSON.parse(localStorage.getItem('profile') || '{}'), username: updated.username, email: updated.email, avatar_url: updated.avatar_url }));
+      setEditMode(false);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (editMode && !editLoading) {
+      document.getElementById('avatar-upload-input')?.click();
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      setEditAvatar(file);
+      setEditAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
   return (
     <div className="profile-root">
       <header className="home-header">
         <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
           <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
-          <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
-            <img src={planetIcon} alt="planet" style={{ width: 28, height: 28 }} />
-          </span>
         </a>
         <nav className="main-nav">
-          <a href="#">Browse Events</a>
+          <a href="/">Home</a>
+          <a href="/all-event-types">All Events</a>
           <a href="/create-event">Create Event</a>
-          <a href="#">My tickets</a>
-          {isLoggedIn && user.company && user.company.id ? (
-            <a href={`/company/${user.company.id}`}>View Company{user.company.name ? `: ${user.company.name}` : ''}</a>
-          ) : isLoggedIn ? (
-            <a href="/register-company">Register Company</a>
-          ) : null}
+          <a href="/profile">Profile</a>
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          {isLoggedIn ? (
-            <>
-              <div
-                onClick={() => window.location.href = '/profile'}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: '#e0e0d0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: 22,
-                  border: '1px solid #bbb',
-                }}
-                title="Profile"
-              >
-                <span role="img" aria-label="profile">👤</span>
-              </div>
-              <Logout />
-            </>
-          ) : (
-            <>
-              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
-              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
-            </>
-          )}
+          {/* User avatar and logout */}
+          {(() => {
+            const profile = localStorage.getItem('profile');
+            let avatar_url;
+            if (profile) {
+              try {
+                const parsed = JSON.parse(profile);
+                avatar_url = parsed.avatar_url;
+              } catch {
+                /* ignore */
+              }
+            }
+            const getAvatarUrl = (url: string) => {
+              if (!url || url === 'default') return undefined;
+              if (url.startsWith('/uploads')) {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                const baseUrl = apiUrl.replace(/\/api$/, '');
+                return baseUrl + url;
+              }
+              return url;
+            };
+            return (
+              <>
+                <div
+                  onClick={() => window.location.href = '/profile'}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: '#e0e0d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: 22,
+                    border: '1px solid #bbb',
+                    overflow: 'hidden',
+                  }}
+                  title="Profile"
+                >
+                  {avatar_url && avatar_url !== 'default' ? (
+                    <img
+                      src={getAvatarUrl(avatar_url)}
+                      alt="avatar"
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span role="img" aria-label="profile">👤</span>
+                  )}
+                </div>
+                <LogoutButtonStyled />
+              </>
+            );
+          })()}
         </div>
       </header>
       <div className="profile-header">
-        <div className="profile-avatar">
-          <span role="img" aria-label="profile">👤</span>
+        <div className="profile-avatar" style={{ cursor: editMode ? 'pointer' : 'default', position: 'relative', width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #ffe066' }} onClick={handleAvatarClick} title={editMode ? 'Change avatar' : undefined}>
+          {editAvatarPreview && getAvatarUrl(editAvatarPreview) ? (
+            <img
+              src={getAvatarUrl(editAvatarPreview)}
+              alt="avatar"
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <span role="img" aria-label="profile" style={{ fontSize: 48, width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>👤</span>
+          )}
+          {editMode && (
+            <>
+              <input
+                id="avatar-upload-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleAvatarChange}
+                disabled={editLoading}
+              />
+              <span style={{ position: 'absolute', bottom: 0, right: 0, background: '#ffe066', borderRadius: '50%', padding: 6, border: '2px solid #fff', fontSize: 18, cursor: 'pointer' }}>✏️</span>
+            </>
+          )}
         </div>
         <div className="profile-info">
           <h2 style={{ margin: 0, fontSize: 32, color: '#222' }}>{user.login}</h2>
-          <div style={{ color: '#888', fontSize: 18 }}>{user.email}</div>
-          <div style={{ color: '#444', fontSize: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span>Login: <b>{user.login}</b></span>
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <LogoutButtonStyled />
-          </div>
+          {editMode ? (
+            <>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ color: '#888', fontSize: 18 }}>Email:&nbsp;</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={e => setEditEmail(e.target.value)}
+                  style={{ fontSize: 18, padding: '4px 8px', borderRadius: 6, border: '1.5px solid #ffe066', width: 260 }}
+                  disabled={editLoading}
+                  required
+                />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ color: '#444', fontSize: 18 }}>Username:&nbsp;</label>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={e => setEditUsername(e.target.value)}
+                  style={{ fontSize: 18, padding: '4px 8px', borderRadius: 6, border: '1.5px solid #ffe066', width: 200 }}
+                  disabled={editLoading}
+                  required
+                />
+              </div>
+              {editError && <div style={{ color: 'red', fontSize: 15, marginBottom: 8 }}>{editError}</div>}
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button
+                  onClick={handleEditSave}
+                  disabled={editLoading}
+                  style={{ background: '#ffe066', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, cursor: editLoading ? 'not-allowed' : 'pointer', fontSize: 16, color: '#181818', boxShadow: '0 1px 4px #ffe06633', transition: 'background 0.2s' }}
+                >
+                  {editLoading ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleEditCancel}
+                  disabled={editLoading}
+                  style={{ background: '#eee', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, cursor: editLoading ? 'not-allowed' : 'pointer', fontSize: 16, color: '#181818', boxShadow: '0 1px 4px #ffe06622', transition: 'background 0.2s' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ color: '#888', fontSize: 18 }}>{user.email}</div>
+              <div style={{ color: '#444', fontSize: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span>Login: <b>{user.login}</b></span>
+                <span>Username: <b>{user.username}</b></span>
+              </div>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+                <button
+                  style={{
+                    background: 'linear-gradient(90deg, #f7f48b 0%, #f3d250 100%)',
+                    border: '1.5px solid #bfa800',
+                    borderRadius: 12,
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    color: '#222',
+                    padding: '8px 18px',
+                    marginLeft: 0,
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    transition: 'background 0.2s',
+                    outline: 'none',
+                    marginTop: 0,
+                  }}
+                  onClick={handleEdit}
+                >
+                  Edit Profile
+                </button>
+                <LogoutButtonStyled />
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+
+      {/* User's events block (if organizer) */}
+      {user.company && user.company.id && (
+        <div style={{ maxWidth: 800, margin: '32px auto 0 auto', background: '#f7f7f7', borderRadius: 16, boxShadow: '0 2px 8px #e0e0e0', padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>My Events</h2>
+          {userEventsLoading ? (
+            <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
+          ) : userEventsError ? (
+            <div style={{ color: 'red', fontSize: 16 }}>{userEventsError}</div>
+          ) : userEvents.length === 0 ? (
+            <div style={{ color: '#aaa', fontSize: 16 }}>You don't have any created events yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
+              {userEvents.map((ev) => {
+                let imgSrc = '';
+                if (ev.poster_url && ev.poster_url !== 'default') {
+                  imgSrc = ev.poster_url;
+                  if (imgSrc.startsWith('/uploads')) {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                    const baseUrl = apiUrl.replace(/\/api$/, '');
+                    imgSrc = baseUrl + imgSrc;
+                  }
+                } else {
+                  imgSrc = '/default-event.png';
+                }
+                return (
+                  <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                    <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                    <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
+                    {ev.end_date && (
+                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <footer className="home-footer" style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', margin: 0 }}>
         <div className="footer-row">

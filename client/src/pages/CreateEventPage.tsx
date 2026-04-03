@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
-import Logout from '../components/Logout';
+
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 import { useNavigate } from 'react-router-dom';
 import planetIcon from '../assets/planet.svg';
 import './Home.css';
@@ -100,42 +100,13 @@ const CreateEventPage: React.FC = () => {
         <nav className="main-nav">
           <a href="/all-event-types">Browse Events</a>
           <a href="/profile">My tickets</a>
-          {isLoggedIn && company && company.id ? (
+          {company && company.id ? (
             <a href={`/company/${company.id}`}>View Company{company.name ? `: ${company.name}` : ''}</a>
-          ) : isLoggedIn ? (
-            <a href="/register-company">Register Company</a>
-          ) : null}
-        </nav>
-        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          {isLoggedIn ? (
-            <>
-              <div
-                onClick={() => window.location.href = '/profile'}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: '#e0e0d0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: 22,
-                  border: '1px solid #bbb',
-                }}
-                title="Profile"
-              >
-                <span role="img" aria-label="profile">👤</span>
-              </div>
-              <Logout />
-            </>
           ) : (
-            <>
-              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
-              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
-            </>
+            <a href="/register-company">Register Company</a>
           )}
-        </div>
+        </nav>
+        <HeaderUserBlock />
       </header>
 
       <main className="main-content" style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

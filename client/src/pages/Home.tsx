@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Logout from '../components/Logout';
+
 import './Home.css';
 
 import searchIcon from '../assets/search.svg';
 import planetIcon from '../assets/planet.svg';
 import arrowLeft from '../assets/arrowLeft.png';
 import arrowRight from '../assets/arrowRight.png';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
 interface Event {
   id: number;
@@ -192,36 +193,7 @@ const Home: React.FC = () => {
             <a href="/register-company">Register Company</a>
           ) : null}
         </nav>
-        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          {isLoggedIn ? (
-            <>
-              <div
-                onClick={() => window.location.href = '/profile'}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: '#e0e0d0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: 22,
-                  border: '1px solid #bbb',
-                }}
-                title="Profile"
-              >
-                <span role="img" aria-label="profile">👤</span>
-              </div>
-              <Logout />
-            </>
-          ) : (
-            <>
-              <button className="sign-in-btn" onClick={() => window.location.href = '/login'}>Sign in</button>
-              <button className="sign-in-btn" style={{marginLeft: 0}} onClick={() => window.location.href = '/register'}>Sign up</button>
-            </>
-          )}
-        </div>
+        <HeaderUserBlock />
       </header>
 
 

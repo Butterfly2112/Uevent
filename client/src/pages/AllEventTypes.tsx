@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import Logout from '../components/Logout';
+
 import planetIcon from '../assets/planet.svg';
 import searchIcon from '../assets/search.svg';
 import './Home.css';
+import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
 interface Event {
   id: number;
@@ -171,9 +172,7 @@ const AllEventTypes: React.FC = () => {
           <a href="/create-event">Create Event</a>
           <a href="#">My tickets</a>
         </nav>
-        <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
-          <Logout />
-        </div>
+        <HeaderUserBlock />
       </header>
       {/* Filter form below header */}
       <div style={{

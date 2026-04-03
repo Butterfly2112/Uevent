@@ -7,9 +7,10 @@ const Logout: React.FC<{ onLogout?: () => void }> = ({ onLogout }) => {
         method: 'POST',
         credentials: 'include',
       });
-      localStorage.removeItem('access_token');
+      localStorage.clear();
+      sessionStorage.clear();
       if (onLogout) onLogout();
-      window.location.href = '/';
+      window.location.reload();
     } catch {
       alert('Logout failed');
     }
