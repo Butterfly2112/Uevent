@@ -102,3 +102,98 @@
   font-size: 1.1rem;
   color: #222;
 }
+
+.notifications-section {
+  padding: 10px;
+}
+
+.notifications-title {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: #222;
+}
+
+.notifications-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.notification-card {
+  border-radius: 12px;
+  padding: 16px;
+  transition: 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-card.unread {
+  background: #f7f48b;
+  box-shadow: 0 4px 10px #ffe066;
+  border-left: 8px solid #ffe066;
+}
+
+.notification-card.read {
+  opacity: 0.9;
+  background: #f4f3d1;
+  box-shadow: 0 2px 6px rgba(200, 190, 120, 0.3);
+  border-left: 6px solid #d6cf8a;
+}
+
+.notification-card:hover {
+  transform: translateY(-2px);
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.notif-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.notif-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.notif-message {
+  color: #555;
+  font-size: 14px;
+  text-align: left;
+}
+
+.no-notifications {
+  color: #888;
+}
+
+.notif-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.icon-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-btn:hover {
+  background: #d6cf8a;
+}
+
+.icon-btn.delete:hover {
+  background: #d6cf8a;
+}

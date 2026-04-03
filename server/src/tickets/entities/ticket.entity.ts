@@ -13,7 +13,7 @@ import { PromoCode } from 'src/events/entities/promo-code.entity';
 export enum TicketStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
 }
 
 @Entity('tickets')
@@ -44,8 +44,11 @@ export class Ticket {
   status: TicketStatus;
 
   @Column({ default: true })
-  user_is_visible_to_public: boolean; 
+  user_is_visible_to_public: boolean;
 
   @CreateDateColumn()
   created_at: Date;
+
+  @Column({ nullable: true })
+  payment_intent_id?: string;
 }

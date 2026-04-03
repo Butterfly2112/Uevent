@@ -95,6 +95,35 @@ export class AuthService {
     };
   }
 
+  async loginWithGoogle(googleUser: {
+    googleId: string;
+    email: string;
+    username: string;
+    avatar: string;
+  }): Promise<AuthResponse> {
+    let user = await this.usersService.findByLoginOrEmail(googleUser.email);
+
+    if (!user) {
+      const login = googleUser.email.split('@')[0];
+      user = await this.usersService.createGoogleUser(
+        login,
+        googleUser.username,
+        googleUser.email,
+        googleUser.googleId,
+        googleUser.avatar,
+      );
+    }
+
+    const { accessToken, refreshJwtToken } = await this.generateJwtTokens(user);
+    await this.saveNewRefreshToken(user, refreshJwtToken);
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshJwtToken,
+      user: toUserResponse(user),
+    };
+  }
+
   async confirmEmail(token: string): Promise<void> {
     const emailToken = await this.tokenRepository.findOne({
       where: { token: token },
@@ -197,7 +226,7 @@ export class AuthService {
         accessToken,
         refreshJwtToken,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new ConflictException(`Invalid refresh token: ${error.message}`);
     }
   }

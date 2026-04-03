@@ -6,16 +6,19 @@ import { Token } from './entities/token.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
 import { EmailModule } from 'src/email/email.module';
+import { PassportModule } from '@nestjs/passport';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
+    PassportModule,
     forwardRef(() => UsersModule),
     EmailModule,
     JwtModule.register({}),
     TypeOrmModule.forFeature([Token]),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, GoogleStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

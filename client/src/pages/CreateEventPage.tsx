@@ -48,47 +48,54 @@ const CreateEventPage: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const handleSubmit = async (data: EventFormData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === 'poster_url' && value instanceof File) {
-            formData.append(key, value);
-          } else {
-            formData.append(key, String(value));
-          }
-        }
-      });
-          const token = localStorage.getItem('access_token');
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-          const response = await fetch('/api/events', {
-            method: 'POST',
-            headers,
-            body: formData,
-          });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to create event');
-      }
-      const event = await response.json();
-      // Redirect to the new event page
-      navigate(`/event/${event.id}`);
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message || 'Failed to create event');
-      } else {
-        setError('Failed to create event');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleSubmit = async (data: EventFormData) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const companyId = company?.id;
 
-  return (
+            if (!companyId) {
+                throw new Error('Company ID is missing. Please register your company again.');
+            }
+
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    if (key === 'poster_url' && value instanceof File) {
+                        formData.append('file', value);
+                    } else if (key !== 'poster_url') {
+                        formData.append(key, String(value));
+                    }
+                }
+            });
+            const token = localStorage.getItem('access_token');
+
+            const response = await fetch(`/api/events/${companyId}`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to create event');
+            }
+            const event = await response.json();
+            navigate(`/event/${event.id}`);
+        } catch (e) {
+            if (e instanceof Error) {
+                setError(e.message || 'Failed to create event');
+            } else {
+                setError('Failed to create event');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
     <div className="home-root">
       <header className="home-header">
         <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>

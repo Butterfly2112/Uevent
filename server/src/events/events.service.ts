@@ -9,7 +9,7 @@ import { EventResponse } from './types/eventResponse.type';
 import { CompanyService } from 'src/companies/companies.service';
 import { CreateEventDto } from './dto/createEvent.dto';
 import { UploadService } from 'src/upload/upload.service';
-import { Event, EventStatus } from './entities/event.entity';
+import { Event } from './entities/event.entity';
 import {
   checkVisibilityOfEvent,
   toEventResponse,
@@ -17,6 +17,8 @@ import {
 } from 'src/common/mappers/event.mapper';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { GetEventsDto } from './dto/getEvents.dto';
+import { PromoCode } from './entities/promo-code.entity';
+import { PromoCodeDto } from './dto/promoCodeDto';
 
 @Injectable()
 export class EventService {
@@ -24,6 +26,8 @@ export class EventService {
     @InjectRepository(Event) private eventRepository: Repository<Event>,
     private companyService: CompanyService,
     private uploadService: UploadService,
+    @InjectRepository(PromoCode)
+    private promoCodeRepository: Repository<PromoCode>,
   ) {}
 
   async createEvent(
@@ -54,6 +58,27 @@ export class EventService {
       host: company.owner,
       ...dto,
     });
+
+    const promoCodes = (dto.promoCodes ?? []).map((p: PromoCodeDto) => ({
+      code: p.code,
+      discount_percentage: p.discount_percentage,
+      expires_at: p.expires_at,
+    }));
+
+    if (promoCodes.length > 0) {
+      if (promoCodes.length > 5) {
+        throw new ForbiddenException('Maximum 5 promo codes allowed');
+      }
+
+      const promoEntities = promoCodes.map((p) =>
+        this.promoCodeRepository.create({
+          ...p,
+          event: event,
+        }),
+      );
+
+      await this.promoCodeRepository.save(promoEntities);
+    }
 
     return toEventResponse(event, {
       owner: true,
