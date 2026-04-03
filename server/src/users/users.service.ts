@@ -325,4 +325,23 @@ export class UsersService {
 
     return { users: users.map(mapUserForAdmin), total };
   }
+
+  async createGoogleUser(
+    login: string,
+    username: string,
+    email: string,
+    googleId: string,
+    avatar_url: string,
+  ): Promise<User> {
+    const user = this.usersRepository.create({
+      login,
+      username,
+      email,
+      google_id: googleId,
+      avatar_url,
+      is_email_verified: true,
+    });
+
+    return await this.usersRepository.save(user);
+  }
 }

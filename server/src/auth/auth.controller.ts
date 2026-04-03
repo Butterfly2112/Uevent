@@ -37,6 +37,8 @@ import {
   RequestPasswordResetDto,
   ResetPasswordDto,
 } from './dto/passwordReset.dto';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -126,6 +128,38 @@ export class AuthController {
       access_token,
       user,
     };
+  }
+
+  @ApiOperation({
+    summary: 'Login or Registration + login using Google',
+  })
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuth() {}
+
+  @ApiOperation({
+    summary: 'Getting callback from google when tried to login with it',
+  })
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleCallback(
+    @Req() req: any,
+    @Res({ passthrough: false }) res: Response,
+  ) {
+    const { access_token, refresh_token } =
+      await this.authService.loginWithGoogle(req.user);
+
+    res.cookie('refreshToken', refresh_token, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    const frontendUrl =
+      (await this.configService.get('FRONTEND_URL')) || 'http://localhost:3000';
+    console.log(frontendUrl);
+    return res.redirect(`${frontendUrl}/login?token=${access_token}`);
   }
 
   @ApiOperation({
