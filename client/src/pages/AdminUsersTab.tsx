@@ -20,17 +20,15 @@ const AdminUsersTab: React.FC = () => {
     setError(null);
     try {
       const token = localStorage.getItem('access_token');
-      let url = `${import.meta.env.VITE_API_URL}/users/search`;
-      if (search.trim()) {
-        const params = new URLSearchParams();
-        params.append('search', search);
-        url += `?${params.toString()}`;
-      }
+      const params = new URLSearchParams();
+      params.append('search', search); // всегда добавляем search, даже если пустой
+      const url = `${import.meta.env.VITE_API_URL}/users/search?${params.toString()}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
+      console.log('DEBUG users response:', data); // debug
       setUsers(data.users || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
@@ -46,11 +44,15 @@ const AdminUsersTab: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/users/search`, {
+        const params = new URLSearchParams();
+        params.append('search', '');
+        const url = `${import.meta.env.VITE_API_URL}/users/search?${params.toString()}`;
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!res.ok) throw new Error('Failed to fetch users');
         const data = await res.json();
+        console.log('DEBUG users response:', data); // debug
         setUsers(data.users || []);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unknown error');

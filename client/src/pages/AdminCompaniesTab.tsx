@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 interface Company {
   id: number;
   name: string;
-  email?: string;
+  email_for_info?: string;
   description?: string;
-  owner_id?: number;
+  owner?: { id: number; login?: string; username?: string; avatar_url?: string };
 }
 
 const AdminCompaniesTab: React.FC = () => {
@@ -19,12 +19,9 @@ const AdminCompaniesTab: React.FC = () => {
     setError(null);
     try {
       const token = localStorage.getItem('access_token');
-      let url = `${import.meta.env.VITE_API_URL}/companies/search`;
-      if (search.trim()) {
-        const params = new URLSearchParams();
-        params.append('search', search);
-        url += `?${params.toString()}`;
-      }
+      const params = new URLSearchParams();
+      params.append('search', search);
+      const url = `${import.meta.env.VITE_API_URL}/companies/search?${params.toString()}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,12 +37,14 @@ const AdminCompaniesTab: React.FC = () => {
   };
 
   React.useEffect(() => {
-    // On mount, fetch all companies (no search param)
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/companies/search`, {
+        const params = new URLSearchParams();
+        params.append('search', '');
+        const url = `${import.meta.env.VITE_API_URL}/companies/search?${params.toString()}`;
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!res.ok) throw new Error('Failed to fetch companies');
@@ -70,6 +69,15 @@ const AdminCompaniesTab: React.FC = () => {
       });
       if (!res.ok) throw new Error('Failed to delete company');
       setCompanies(companies => companies.filter(c => c.id !== id));
+
+      const profileStr = localStorage.getItem('profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile.company && profile.company.id === id) {
+          profile.company = undefined;
+          localStorage.setItem('profile', JSON.stringify(profile));
+        }
+      }
     } catch (e) {
       alert('Failed to delete company: ' + (e instanceof Error ? e.message : 'Unknown error'));
     }
@@ -89,32 +97,38 @@ const AdminCompaniesTab: React.FC = () => {
       </div>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
-      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 1px 6px #ffe06633' }}>
-        <thead>
-          <tr style={{ background: '#fffbe6' }}>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>ID</th>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>Name</th>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>Email</th>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>Description</th>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>Owner ID</th>
-            <th style={{ padding: 8, borderBottom: '1px solid #eee' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {companies.map(company => (
-            <tr key={company.id}>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.id}</td>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.name}</td>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.email || '-'}</td>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.description || '-'}</td>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.owner_id || '-'}</td>
-              <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                <button onClick={() => handleDelete(company.id)} style={{ background: '#ff4d4f', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
-              </td>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ minWidth: 700, width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 1px 6px #ffe06633' }}>
+          <thead>
+            <tr style={{ background: '#fffbe6' }}>
+              <th style={{ padding: 8, borderBottom: '1px solid #eee', minWidth: 40 }}>ID</th>
+              <th style={{ padding: 8, borderBottom: '1px solid #eee', minWidth: 100 }}>Name</th>
+              <th style={{ padding: 8, borderBottom: '1px solid #eee', minWidth: 120 }}>Email</th>
+              <th style={{ padding: 8, borderBottom: '1px solid #eee', minWidth: 70 }}>Owner ID</th>
+              <th style={{ padding: 8, borderBottom: '1px solid #eee', minWidth: 80 }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {companies.map(company => (
+              <tr key={company.id}>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.id}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.name}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.email_for_info || '-'}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{company.owner?.id ?? '-'}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                    <button
+                      onClick={() => handleDelete(company.id)}
+                      style={{ background: '#ff4d4f', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 18px', fontWeight: 600, cursor: 'pointer' }}
+                      title="Delete company"
+                    >
+                      Delete
+                    </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {companies.length === 0 && !loading && !error && <div style={{ marginTop: 24, color: '#888' }}>No companies found.</div>}
     </div>
   );

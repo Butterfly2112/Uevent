@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
 
@@ -45,10 +46,13 @@ interface Company {
 
 
 const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
-    // State for event registration modal
-    const [showEventForm, setShowEventForm] = useState(false);
-    const [eventFormLoading, setEventFormLoading] = useState(false);
-    const [eventFormError, setEventFormError] = useState('');
+  const navigate = useNavigate();
+  // Deleted state must be defined before any conditional rendering
+  const [deleted, setDeleted] = useState(false);
+  // State for event registration modal
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventFormLoading, setEventFormLoading] = useState(false);
+  const [eventFormError, setEventFormError] = useState('');
     // Event registration handler
     const handleEventRegister = async (data: EventFormData) => {
       setEventFormLoading(true);
@@ -75,11 +79,6 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
               }
             }
           });
-          // Debug: log all FormData entries (remove before production)
-          // console.log('FormData being sent:');
-          // for (const [key, value] of formData.entries()) {
-          //   console.log(key, value);
-          // }
           body = formData;
           if (token) headers['Authorization'] = `Bearer ${token}`;
         } else {
@@ -188,18 +187,27 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         const data = await res.json();
         if (!ignore) setCompany(data);
       } catch (e) {
-        if (!ignore) setError(e instanceof Error ? e.message : 'Loading error');
+        if (!ignore) {
+          setError(e instanceof Error ? e.message : 'Loading error');
+          setTimeout(() => navigate('/', { replace: true }), 1200);
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
     };
     fetchCompany();
     return () => { ignore = true; };
-  }, [id]);
+  }, [id, navigate]);
 
   if (loading) return <div className="profile-root"><div>Loading company...</div></div>;
-  if (error) return <div className="profile-root"><div style={{ color: 'red' }}>{error}</div></div>;
-  if (!company) return <div className="profile-root"><div>Company not found</div></div>;
+  if (error || !company || deleted) return (
+    <div className="profile-root" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+      <div style={{ color: '#b71c1c', fontSize: 24, fontWeight: 600, marginBottom: 12 }}>
+        Your company has been deleted.
+      </div>
+      <div style={{ color: '#888', fontSize: 18 }}>You will be redirected to Home...</div>
+    </div>
+  );
 
   let isOwner = false;
   let isAdmin = false;
@@ -230,8 +238,8 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         headers,
       });
       if (!res.ok) throw new Error(await res.text());
-      // Redirect to home or all companies page after deletion
-      window.location.href = '/';
+      setDeleted(true);
+      setCompany(null);
     } catch (e) {
       alert('Failed to delete company: ' + (e instanceof Error ? e.message : 'Unknown error'));
     }
