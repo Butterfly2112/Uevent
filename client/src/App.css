@@ -1,4 +1,39 @@
-.counter {
+.company-edit-modal-form {
+	scrollbar-width: thin;
+	scrollbar-color: #ffe066 #fffbe6;
+}
+.company-edit-modal-form::-webkit-scrollbar {
+	width: 8px;
+	background: #fffbe6;
+	border-radius: 8px;
+}
+.company-edit-modal-form::-webkit-scrollbar-thumb {
+	background: #ffe066;
+	border-radius: 8px;
+	border: 2px solid #fffbe6;
+}
+.company-edit-modal-form {
+  scrollbar-width: thin !important;
+  scrollbar-color: #ffe066 #fffbe6 !important;
+  min-height: 200px;
+  width: 100%;
+}
+.company-edit-modal-form::-webkit-scrollbar {
+  width: 8px !important;
+  background: #fffbe6 !important;
+  border-radius: 8px !important;
+}
+.company-edit-modal-form::-webkit-scrollbar-thumb {
+  background: #ffe066 !important;
+  border-radius: 8px !important;
+  border: 2px solid #fffbe6 !important;
+}
+.company-edit-modal-form::-webkit-scrollbar-thumb:hover {
+  background: #ffec80 !important;
+}
+.company-edit-modal-form::-webkit-scrollbar-thumb:hover {
+	background: #ffec80;
+}.counter {
   font-size: 16px;
   padding: 5px 10px;
   border-radius: 5px;

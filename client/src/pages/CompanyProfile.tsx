@@ -7,9 +7,16 @@ import './Profile.css';
 import planetIcon from '../assets/planet.svg';
 import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
+type PromoCode = {
+  code: string;
+  discount_percentage: number;
+  expires_at: string;
+};
+
 interface Event {
   id: number;
   title: string;
+  description?: string;
   start_date?: string;
   end_date?: string;
   poster_url?: string;
@@ -17,6 +24,13 @@ interface Event {
   publish_date?: string;
   companyId?: number | null;
   address?: string;
+  price?: number;
+  ticket_limit?: number;
+  redirect_url?: string;
+  format?: string;
+  theme?: string;
+  visitor_visibility?: 'everybody' | 'attendees_only';
+  promo_codes?: PromoCode[];
 }
 
 interface News {
@@ -50,7 +64,106 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
   // Deleted state must be defined before any conditional rendering
   const [deleted, setDeleted] = useState(false);
   // State for event registration modal
+    // State for editing company
+    const [showEditCompany, setShowEditCompany] = useState(false);
+    const [editCompanyForm, setEditCompanyForm] = useState({
+      name: '',
+      email_for_info: '',
+      location: '',
+      description: '',
+      picture: null as File | null,
+    });
+    const [editCompanyPreview, setEditCompanyPreview] = useState<string | null>(null);
+    const [editCompanyLoading, setEditCompanyLoading] = useState(false);
+    const [editCompanyMessage, setEditCompanyMessage] = useState('');
   const [showEventForm, setShowEventForm] = useState(false);
+  // Edit Event Modal State
+  const [showEditEvent, setShowEditEvent] = useState(false);
+  const [editEventLoading, setEditEventLoading] = useState(false);
+  const [editEventError, setEditEventError] = useState('');
+  const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
+    // Prepare initial form data for edit
+    const getInitialEventForm = (ev: Event) => ({
+      title: ev.title || '',
+      description: ev.description || '',
+      price: ev.price || 0,
+      ticket_limit: ev.ticket_limit || '',
+      address: ev.address || '',
+      poster_url: ev.poster_url || '',
+      redirect_url: ev.redirect_url || '',
+      start_date: ev.start_date ? new Date(ev.start_date).toISOString().slice(0, 16) : '',
+      end_date: ev.end_date ? new Date(ev.end_date).toISOString().slice(0, 16) : '',
+      publish_date: ev.publish_date ? new Date(ev.publish_date).toISOString().slice(0, 16) : '',
+      status: ev.status || '',
+      format: ev.format || '',
+      theme: ev.theme || '',
+      visitor_visibility: ev.visitor_visibility || 'everybody',
+      promoCodes: ev.promo_codes || [],
+      notificate_owner: false,
+    });
+
+    // Edit event handler
+    const handleEditEvent = async (data: EventFormData) => {
+      if (!eventToEdit) return;
+      setEditEventLoading(true);
+      setEditEventError('');
+      try {
+        const token = localStorage.getItem('access_token');
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        let body: BodyInit;
+        const headers: Record<string, string> = {};
+        if (data.poster_url && data.poster_url instanceof File) {
+          const formData = new FormData();
+          Object.entries(data).forEach(([key, value]) => {
+            if (key === 'poster_url' && value instanceof File) {
+              formData.append('file', value);
+            } else if (value !== undefined && value !== null) {
+              if (key === 'ticket_limit') {
+                const num = typeof value === 'number' ? value : Number(value);
+                if (!isNaN(num)) {
+                  formData.append(key, num.toString());
+                }
+              } else if (key === 'promoCodes' || key === 'promo_codes') {
+                // skip
+              } else {
+                formData.append(key, String(value));
+              }
+            }
+          });
+          body = formData;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } else {
+          // Remove promoCodes and promo_codes
+          const rest = Object.fromEntries(
+            Object.entries(data).filter(([key]) => key !== 'promoCodes' && key !== 'promo_codes')
+          ) as Record<string, unknown>;
+          body = JSON.stringify(rest);
+          headers['Content-Type'] = 'application/json';
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/events/${eventToEdit.id}`, {
+          method: 'PATCH',
+          headers,
+          body
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err || 'Error updating event');
+        }
+        setShowEditEvent(false);
+        setEventToEdit(null);
+        // Reload company events
+        const updatedEvent = await res.json();
+        setCompany(company => company ? {
+          ...company,
+          events: (company.events || []).map(ev => ev.id === updatedEvent.id ? updatedEvent : ev)
+        } : company);
+      } catch (e) {
+        setEditEventError(e instanceof Error ? e.message : 'Error updating event');
+      } finally {
+        setEditEventLoading(false);
+      }
+    };
   const [eventFormLoading, setEventFormLoading] = useState(false);
   const [eventFormError, setEventFormError] = useState('');
     // Event registration handler
@@ -305,6 +418,225 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
             <h2 style={{ margin: 0, fontSize: 32, color: '#222' }}>{company.name}</h2>
             <div style={{ color: '#888', fontSize: 18 }}><b>Email:</b> {company.email_for_info}</div>
             <div style={{ color: '#888', fontSize: 18 }}><b>Location:</b> {company.location || <span style={{color:'#bbb'}}>Not specified</span>}</div>
+            {isOwner && (
+              <button
+                onClick={() => {
+                  setEditCompanyForm({
+                    name: company.name || '',
+                    email_for_info: company.email_for_info || '',
+                    location: company.location || '',
+                    description: company.description || '',
+                    picture: null,
+                  });
+                  setEditCompanyPreview(company.picture_url ? (company.picture_url.startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + company.picture_url : company.picture_url) : null);
+                  setShowEditCompany(true);
+                  setEditCompanyMessage('');
+                }}
+                style={{ marginTop: 8, background: '#ffe066', border: '1px solid #bfa800', color: '#222', borderRadius: 8, padding: '8px 22px', fontWeight: 600, cursor: 'pointer', fontSize: 16, alignSelf: 'flex-start' }}
+              >
+                Edit company
+              </button>
+            )}
+            {/* Edit Company Modal */}
+            {(isOwner || isAdmin) && showEditCompany && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(0,0,0,0.35)',
+                zIndex: 2200,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+                onClick={() => setShowEditCompany(false)}
+              >
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setEditCompanyLoading(true);
+                    setEditCompanyMessage('');
+                    try {
+                      const formData = new FormData();
+                      formData.append('name', editCompanyForm.name);
+                      formData.append('email_for_info', editCompanyForm.email_for_info);
+                      formData.append('location', editCompanyForm.location);
+                      formData.append('description', editCompanyForm.description);
+                      if (editCompanyForm.picture) formData.append('picture', editCompanyForm.picture);
+                      const token = localStorage.getItem('access_token');
+                      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/companies/${company.id}`, {
+                        method: 'PATCH',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: formData,
+                      });
+                      if (!res.ok) throw new Error(await res.text());
+                      setEditCompanyMessage('Company updated!');
+                      setTimeout(() => { setShowEditCompany(false); window.location.reload(); }, 800);
+                    } catch (err: unknown) {
+                      let errorMsg = 'Cannot update company';
+                      if (err && typeof err === 'object' && 'message' in err && typeof (err as Record<string, unknown>).message === 'string') {
+                        errorMsg = (err as { message: string }).message;
+                      }
+                      setEditCompanyMessage('Error: ' + errorMsg);
+                    } finally {
+                      setEditCompanyLoading(false);
+                    }
+                  }}
+                  style={{
+                    background: '#fff',
+                    borderRadius: 18,
+                    boxShadow: '0 4px 24px #ffe066',
+                    padding: 0,
+                    maxWidth: 340,
+                    minWidth: 240,
+                    width: '90vw',
+                    position: 'relative',
+                    border: '2px solid #ffe066',
+                    maxHeight: '92vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: 32,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 18,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <h2 style={{ margin: 0, fontSize: 28, color: '#222', fontWeight: 700, letterSpacing: 0.5 }}>Edit Company</h2>
+                      <button type="button" onClick={() => setShowEditCompany(false)} style={{ background: 'none', border: 'none', fontSize: 30, cursor: 'pointer', color: '#888', transition: 'color 0.2s' }} title="Close" onMouseOver={e => (e.currentTarget.style.color = '#bfa800')} onMouseOut={e => (e.currentTarget.style.color = '#888')}>&#10006;</button>
+                    </div>
+                    <label style={{ fontWeight: 500, fontSize: 17, marginBottom: 2 }}>Company name
+                      <input name="name" value={editCompanyForm.name} onChange={e => setEditCompanyForm(f => ({ ...f, name: e.target.value }))} required maxLength={60}
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          border: '1.5px solid #ffe066',
+                          fontSize: 17,
+                          marginTop: 4,
+                          background: '#fffbe6',
+                          outline: 'none',
+                          transition: 'border 0.2s',
+                          color: '#111',
+                          textAlign: 'center',
+                          fontWeight: 500,
+                          display: 'block',
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontWeight: 500, fontSize: 17, marginBottom: 2 }}>Contact email
+                      <input name="email_for_info" value={editCompanyForm.email_for_info} onChange={e => setEditCompanyForm(f => ({ ...f, email_for_info: e.target.value }))} required type="email" maxLength={60}
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          border: '1.5px solid #ffe066',
+                          fontSize: 17,
+                          marginTop: 4,
+                          background: '#fffbe6',
+                          outline: 'none',
+                          transition: 'border 0.2s',
+                          color: '#111',
+                          textAlign: 'center',
+                          fontWeight: 500,
+                          display: 'block',
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontWeight: 500, fontSize: 17, marginBottom: 2 }}>Location
+                      <input name="location" value={editCompanyForm.location} onChange={e => setEditCompanyForm(f => ({ ...f, location: e.target.value }))} maxLength={60} required
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          border: '1.5px solid #ffe066',
+                          fontSize: 17,
+                          marginTop: 4,
+                          background: '#fffbe6',
+                          outline: 'none',
+                          transition: 'border 0.2s',
+                          color: '#111',
+                          textAlign: 'center',
+                          fontWeight: 500,
+                          display: 'block',
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontWeight: 500, fontSize: 17, marginBottom: 2 }}>Description
+                      <textarea name="description" value={editCompanyForm.description} onChange={e => setEditCompanyForm(f => ({ ...f, description: e.target.value }))} required maxLength={400}
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          border: '1.5px solid #ffe066',
+                          fontSize: 17,
+                          marginTop: 4,
+                          background: '#fffbe6',
+                          outline: 'none',
+                          minHeight: 80,
+                          resize: 'vertical',
+                          transition: 'border 0.2s',
+                          color: '#111',
+                          textAlign: 'center',
+                          fontWeight: 500,
+                          display: 'block',
+                          verticalAlign: 'middle',
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontWeight: 500, fontSize: 17, marginBottom: 2 }}>Company logo (optional)
+                      <input type="file" accept="image/*" onChange={e => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          setEditCompanyForm(f => ({ ...f, picture: file }));
+                          const reader = new FileReader();
+                          reader.onloadend = () => setEditCompanyPreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                        style={{ marginTop: 6 }}
+                      />
+                    </label>
+                    {editCompanyPreview && (
+                      <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                        <img src={editCompanyPreview} alt="Preview" style={{ maxWidth: 100, maxHeight: 100, borderRadius: 16, boxShadow: '0 4px 16px #ffe066', border: '2px solid #ffe066', background: '#fffbe6', margin: '0 auto' }} />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    position: 'sticky',
+                    bottom: 0,
+                    background: '#fff',
+                    padding: '16px 32px 16px 32px',
+                    zIndex: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    borderBottomLeftRadius: 18,
+                    borderBottomRightRadius: 18,
+                  }}>
+                    <button type="submit" disabled={editCompanyLoading}
+                      style={{
+                        background: editCompanyLoading ? '#ffe06699' : '#ffe066',
+                        border: 'none',
+                        borderRadius: 10,
+                        padding: '14px 0',
+                        fontWeight: 700,
+                        cursor: editCompanyLoading ? 'not-allowed' : 'pointer',
+                        fontSize: 19,
+                        width: '100%',
+                        boxShadow: '0 2px 8px #ffe066',
+                        transition: 'background 0.2s',
+                      }}
+                    >{editCompanyLoading ? 'Saving...' : 'Save'}</button>
+                    {editCompanyMessage && <div style={{ color: editCompanyMessage.startsWith('Error') ? '#d32f2f' : '#bfa800', marginTop: 8, fontWeight: 500, fontSize: 16, textAlign: 'center' }}>{editCompanyMessage}</div>}
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
           {(isOwner || isAdmin) && (
             <>
@@ -547,7 +879,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
           }}>
             {company.events && company.events.length > 0 ? (
               company.events.map(event => (
-                <div key={event.id} style={{ minWidth: 220, maxWidth: 260, background: '#fffbe6', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div key={event.id} style={{ minWidth: 220, maxWidth: 260, background: '#fffbe6', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
                   {event.publish_date && (
                     <div style={{ color: '#888', fontSize: 14, marginBottom: 2 }}>
                       <span style={{ fontWeight: 500 }}>Publish:</span> {new Date(event.publish_date).toLocaleDateString()} {new Date(event.publish_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -592,25 +924,75 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
                     </div>
                   )}
                   {(isOwner || isAdmin) && (
-                    <button
-                      onClick={() => handleDeleteEvent(event.id)}
-                      style={{
-                        marginTop: 10,
-                        background: '#ff4d4f',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '8px 18px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        fontSize: 15,
-                        boxShadow: '0 1px 4px #ff4d4f44',
-                      }}
-                      title="Delete event"
-                    >
-                      Delete
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        onClick={() => handleDeleteEvent(event.id)}
+                        style={{
+                          background: '#ff4d4f',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '8px 14px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontSize: 15,
+                          boxShadow: '0 1px 4px #ff4d4f44',
+                        }}
+                        title="Delete event"
+                      >
+                        Delete
+                      </button>
+                      {isOwner && (
+                        <button
+                          onClick={() => { setEventToEdit(event); setShowEditEvent(true); setEditEventError(''); }}
+                          style={{
+                            background: '#ffe066',
+                            color: '#222',
+                            border: '1px solid #bfa800',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontSize: 15,
+                            boxShadow: '0 1px 4px #ffe06644',
+                          }}
+                          title="Edit event"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
                   )}
+                        {/* Edit Event Modal */}
+                        {(isOwner || isAdmin) && showEditEvent && eventToEdit && (
+                          <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            background: 'rgba(0,0,0,0.35)',
+                            zIndex: 2200,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                            onClick={() => { setShowEditEvent(false); setEventToEdit(null); }}
+                          >
+                            <div style={{ background: '#fffde7', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 32, width: '80vw', maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }} onClick={e => e.stopPropagation()}>
+                              <button type="button" onClick={() => { setShowEditEvent(false); setEventToEdit(null); }} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&#10006;</button>
+                              {/* Note: initialData is not typed in EventRegistrationForm, but works at runtime for edit mode */}
+                              <EventRegistrationForm
+                                onSubmit={handleEditEvent}
+                                loading={editEventLoading}
+                                error={editEventError}
+                                onClose={() => { setShowEditEvent(false); setEventToEdit(null); }}
+                                // @ts-expect-error: initialData is not typed in EventRegistrationForm, but works at runtime for edit mode
+                                initialData={getInitialEventForm(eventToEdit)}
+                              />
+                            </div>
+                          </div>
+                        )}
                   <a href={`/event/${event.id}`} style={{ marginTop: 10, color: '#2a7ae2', textDecoration: 'underline', fontSize: 15 }}>View Event</a>
                   {event.companyId === null && (
                     <div style={{ color: '#ff4d4f', fontSize: 14, marginTop: 6 }}>This company was deleted</div>

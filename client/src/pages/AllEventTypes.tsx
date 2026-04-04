@@ -290,27 +290,15 @@ const AllEventTypes: React.FC = () => {
             onChange={e => setMaxPrice(e.target.value)}
             style={{ minWidth: 100, background: '#fff', border: '1px solid #ffe066', borderRadius: 8, padding: '8px 12px', fontSize: 16, color: '#222' }}
           />
-          {(user && (user.role === 'admin' || user.role === 'owner')) ? (
-            <div style={{ background: '#fffde6', border: '1.5px solid #ffe066', borderRadius: 10, padding: '7px 18px 7px 12px', marginLeft: 8, display: 'flex', alignItems: 'center', boxShadow: '0 1px 4px #ffe06633', fontWeight: 500, fontSize: 15, color: '#888', userSelect: 'none', height: 40, opacity: 0.6 }}>
-              <input
-                type="checkbox"
-                checked={false}
-                disabled
-                style={{ marginRight: 8, width: 18, height: 18 }}
-              />
-              Hide events with deleted company (disabled for admin/owner)
-            </div>
-          ) : (
-            <div style={{ background: '#fffde6', border: '1.5px solid #ffe066', borderRadius: 10, padding: '7px 18px 7px 12px', marginLeft: 8, display: 'flex', alignItems: 'center', boxShadow: '0 1px 4px #ffe06633', fontWeight: 500, fontSize: 15, color: '#444', userSelect: 'none', height: 40 }}>
-              <input
-                type="checkbox"
-                checked={hideDeletedCompanies}
-                onChange={e => setHideDeletedCompanies(e.target.checked)}
-                style={{ marginRight: 8, width: 18, height: 18 }}
-              />
-              Hide events with deleted company
-            </div>
-          )}
+          <div style={{ background: '#fffde6', border: '1.5px solid #ffe066', borderRadius: 10, padding: '7px 18px 7px 12px', marginLeft: 8, display: 'flex', alignItems: 'center', boxShadow: '0 1px 4px #ffe06633', fontWeight: 500, fontSize: 15, color: '#444', userSelect: 'none', height: 40 }}>
+            <input
+              type="checkbox"
+              checked={hideDeletedCompanies}
+              onChange={e => setHideDeletedCompanies(e.target.checked)}
+              style={{ marginRight: 8, width: 18, height: 18 }}
+            />
+            Hide events with deleted company
+          </div>
           <button
             className="filter-btn"
             type="submit"

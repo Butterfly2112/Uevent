@@ -1,8 +1,11 @@
+
 import planetIcon from '../assets/planet.svg';
 import { HeaderUserBlock } from '../components/HeaderUserBlock';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getAvatarUrl } from '../components/getAvatarUrl';
+import { EventRegistrationForm } from '../components/EventRegistrationForm';
+import type { EventFormData } from '../components/EventRegistrationForm';
 
 interface Ticket {
   id: number;
@@ -20,6 +23,12 @@ interface Company {
   id: number;
   name: string;
   picture_url?: string;
+  owner?: {
+    id: number;
+    login: string;
+    username: string;
+    avatar_url?: string;
+  };
 }
 
 interface PromoCode {
@@ -62,6 +71,7 @@ interface Event {
   company?: Company;
   redirect_url?: string;
   comments?: Comment[];
+  visitor_visibility?: 'everybody' | 'attendees_only';
 }
 
 
@@ -171,6 +181,102 @@ const EventPage: React.FC = () => {
     fetchSimilarEvents();
   }, [event]);
 
+
+  // User info for permissions
+  let isOwner = false;
+  let isAdmin = false;
+  let user: { id: number; role?: string } | null = null;
+  try {
+    const userStr = localStorage.getItem('profile');
+    if (userStr && event && event.company && event.company.owner) {
+      user = JSON.parse(userStr);
+      isOwner = !!user && event.company.owner && user.id === event.company.owner.id;
+      isAdmin = !!user && user.role === 'admin';
+    }
+  } catch {
+    // ignore error
+  }
+
+  // Edit Event Modal State
+  const [showEditEvent, setShowEditEvent] = useState(false);
+  const [editEventLoading, setEditEventLoading] = useState(false);
+  const [editEventError, setEditEventError] = useState('');
+
+  // Prepare initial form data for edit
+  const getInitialEventForm = (ev: Event) => ({
+    title: ev.title || '',
+    description: ev.description || '',
+    price: ev.price || 0,
+    ticket_limit: ev.ticket_limit || '',
+    address: ev.address || '',
+    poster_url: ev.poster_url || '',
+    redirect_url: ev.redirect_url || '',
+    start_date: ev.start_date ? new Date(ev.start_date).toISOString().slice(0, 16) : '',
+    end_date: ev.end_date ? new Date(ev.end_date).toISOString().slice(0, 16) : '',
+    publish_date: ev.publish_date ? new Date(ev.publish_date).toISOString().slice(0, 16) : '',
+    status: ev.status || '',
+    format: ev.format || '',
+    theme: ev.theme || '',
+    visitor_visibility: ev.visitor_visibility || 'everybody',
+    promoCodes: ev.promo_codes || [],
+    notificate_owner: false,
+  });
+
+  // Edit event handler
+  const handleEditEvent = async (data: EventFormData) => {
+    setEditEventLoading(true);
+    setEditEventError('');
+    try {
+      const token = localStorage.getItem('access_token');
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      let body: BodyInit;
+      const headers: Record<string, string> = {};
+      if (data.poster_url && data.poster_url instanceof File) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (key === 'poster_url' && value instanceof File) {
+            formData.append('file', value);
+          } else if (value !== undefined && value !== null) {
+            if (key === 'ticket_limit') {
+              const num = typeof value === 'number' ? value : Number(value);
+              if (!isNaN(num)) {
+                formData.append(key, num.toString());
+              }
+            } else if (key === 'promoCodes' && Array.isArray(value)) {
+              formData.append('promoCodes', JSON.stringify(value));
+            } else {
+              formData.append(key, String(value));
+            }
+          }
+        });
+        body = formData;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        body = JSON.stringify(data);
+        headers['Content-Type'] = 'application/json';
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (!event) throw new Error('Event not loaded');
+      const res = await fetch(`${apiUrl}/events/${event.id}`, {
+        method: 'PATCH',
+        headers,
+        body
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'Error updating event');
+      }
+      setShowEditEvent(false);
+      // Reload event
+      const updated = await res.json();
+      setEvent(updated);
+    } catch (e) {
+      setEditEventError(e instanceof Error ? e.message : 'Error updating event');
+    } finally {
+      setEditEventLoading(false);
+    }
+  };
+
   if (loading) return <div style={{padding: 32}}>Loading event...</div>;
   if (error) return <div style={{padding: 32, color: 'red'}}>{error}</div>;
   if (!event) return <div style={{padding: 32}}>Event not found</div>;
@@ -195,7 +301,45 @@ const EventPage: React.FC = () => {
 
 
       <main className="main-content">
-        <div className="event-page" style={{ maxWidth: 800, margin: '32px auto', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #ffe066', padding: 32 }}>
+        <div className="event-page" style={{ maxWidth: 800, margin: '32px auto', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #ffe066', padding: 32, position: 'relative' }}>
+                    {/* Edit Event Button for owner/admin */}
+                    {(isOwner || isAdmin) && (
+                      <button
+                        onClick={() => setShowEditEvent(true)}
+                        style={{ position: 'absolute', top: 18, right: 24, background: '#ffe066', border: '1px solid #bfa800', color: '#222', borderRadius: 8, padding: '8px 22px', fontWeight: 600, cursor: 'pointer', fontSize: 16, zIndex: 10 }}
+                      >
+                        Edit Event
+                      </button>
+                    )}
+                {/* Edit Event Modal */}
+                {(isOwner || isAdmin) && showEditEvent && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'rgba(0,0,0,0.35)',
+                    zIndex: 2200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                    onClick={() => setShowEditEvent(false)}
+                  >
+                    <div style={{ background: '#fffde7', borderRadius: 12, boxShadow: '0 2px 8px #ffe066', padding: 32, width: '80vw', maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }} onClick={e => e.stopPropagation()}>
+                      <button type="button" onClick={() => setShowEditEvent(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&#10006;</button>
+                      <EventRegistrationForm
+                        onSubmit={handleEditEvent}
+                        loading={editEventLoading}
+                        error={editEventError}
+                        onClose={() => setShowEditEvent(false)}
+                        // @ts-expect-error EventRegistrationForm does not officially support initialData prop, but we use it for edit mode
+                        initialData={getInitialEventForm(event)}
+                      />
+                    </div>
+                  </div>
+                )}
           <h1 style={{ fontSize: 32, marginBottom: 12, color: '#181818' }}>{event.title}</h1>
           {event.publish_date && (
             <div style={{ color: '#888', fontSize: 15, marginBottom: 8 }}>
@@ -443,7 +587,7 @@ function CommentTree(props: { comments: Comment[]; onCommentChanged: () => void;
       return null;
     }
   }, []);
-  const isAdmin = user && user.login === 'admin';
+  const isAdmin = user && (user.role === 'admin' || user.login === 'admin');
   const isLoggedIn = !!localStorage.getItem('access_token');
 
   const handleDelete = async (id: number) => {

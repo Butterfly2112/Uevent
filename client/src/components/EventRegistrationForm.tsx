@@ -77,10 +77,11 @@ export const EventRegistrationForm: React.FC<{
   loading?: boolean;
   error?: string;
   onClose?: () => void;
-}> = ({ onSubmit, loading, error, onClose }) => {
+  initialData?: Partial<EventFormData>;
+}> = ({ onSubmit, loading, error, onClose, initialData }) => {
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>(initialData?.promoCodes || []);
 
   useEffect(() => {
     if (formRef.current) {
@@ -96,14 +97,36 @@ export const EventRegistrationForm: React.FC<{
   };
 
   const [form, setForm] = useState<EventFormData>({
-    title: '',
-    description: '',
-    price: 0,
-    start_date: '',
-    end_date: '',
-    publish_date: getNowDatetimeLocal(),
-    visitor_visibility: 'everybody',
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    price: initialData?.price ?? 0,
+    start_date: initialData?.start_date || '',
+    end_date: initialData?.end_date || '',
+    publish_date: initialData?.publish_date || getNowDatetimeLocal(),
+    visitor_visibility: initialData?.visitor_visibility || 'everybody',
+    ticket_limit: initialData?.ticket_limit,
+    address: initialData?.address,
+    poster_url: initialData?.poster_url,
+    redirect_url: initialData?.redirect_url,
+    status: initialData?.status,
+    format: initialData?.format,
+    theme: initialData?.theme,
+    promoCodes: initialData?.promoCodes,
+    notificate_owner: initialData?.notificate_owner,
   });
+  // Update form and promoCodes if initialData changes (for edit mode)
+  React.useEffect(() => {
+    if (initialData) {
+      setForm(f => ({
+        ...f,
+        ...initialData,
+        price: initialData.price ?? 0,
+        publish_date: initialData.publish_date || getNowDatetimeLocal(),
+        visitor_visibility: initialData.visitor_visibility || 'everybody',
+      }));
+      setPromoCodes(initialData.promoCodes || []);
+    }
+  }, [initialData]);
 
   const addPromoCode = () => {
     if (promoCodes.length >= 5) return;
