@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -235,5 +236,35 @@ export class UsersController {
     if (user && dto.email) this.authService.resetEmailToken(user);
 
     return toUserResponse(user);
+  }
+
+  @ApiOperation({
+    summary: 'Delete user',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    description: 'User id',
+    type: Number,
+  })
+  @ApiForbiddenResponse({
+    description: 'Only owner or admin can delete user',
+  })
+  @ApiNotFoundResponse({
+    description: 'User with such id not found',
+  })
+  @ApiOkResponse({
+    description: 'User was deleted successfully',
+  })
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteUserById(
+    @Req() req: RequestWithUser,
+    @Param('id') param: number,
+  ) {
+    await this.usersService.deleteUserById(req.user.id, req.user.role, param);
+    return {
+      message: 'Deleted user successfuly',
+    };
   }
 }

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,6 +24,11 @@ import {
 } from './types/followResponse.type.dto';
 import { SearchUserDto } from './dto/searchUser.dto';
 import { UserForAdminResponse } from './types/userForAdmin.type';
+import { Company } from 'src/companies/entities/company.entity';
+import {
+  EventStatus,
+  Event as EventEntity,
+} from 'src/events/entities/event.entity';
 
 @Injectable()
 export class UsersService {
@@ -196,7 +202,7 @@ export class UsersService {
       if (dto.avatar_url) this.uploadService.deleteByUrl(dto.avatar_url);
       throw new NotFoundException('User not found');
     }
-    if (dto.avatar_url && user.avatar_url) {
+    if (dto.avatar_url && user.avatar_url !== 'default') {
       this.uploadService.deleteByUrl(user.avatar_url);
     }
     if (dto.email) {
@@ -343,5 +349,59 @@ export class UsersService {
     });
 
     return await this.usersRepository.save(user);
+  }
+
+  async deleteUserById(
+    currentUserId: number,
+    currentUserRole: string,
+    userId: number,
+  ): Promise<void> {
+    if (currentUserId !== userId && currentUserRole !== 'admin') {
+      throw new UnauthorizedException('Only owner or admin can delete user');
+    }
+
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: { company: { events: true, news: true } },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.avatar_url !== 'default') {
+      this.uploadService.deleteByUrl(user.avatar_url);
+    }
+
+    if (user.company) {
+      if (user.company.picture_url) {
+        this.uploadService.deleteByUrl(user.company.picture_url);
+      }
+
+      if (user.company.news) {
+        user.company.news.forEach((elem) => {
+          if (elem.images_url)
+            elem.images_url.forEach((el) => this.uploadService.deleteByUrl(el));
+        });
+      }
+
+      if (user.company) {
+        await this.usersRepository.manager
+          .createQueryBuilder()
+          .update(EventEntity)
+          .set({ status: EventStatus.CANCELED })
+          .where('company_id = :companyId', { companyId: user.company.id })
+          .execute();
+
+        await this.usersRepository.manager
+          .createQueryBuilder()
+          .delete()
+          .from(Company)
+          .where('id = :companyId', { companyId: user.company.id })
+          .execute();
+      }
+    }
+    console.log(user);
+    console.log('UserId ', userId);
+    await this.usersRepository.delete(userId);
   }
 }

@@ -44,7 +44,9 @@ export class Event {
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @ManyToOne(() => User, (user) => user.hosted_events)
+  @ManyToOne(() => User, (user) => user.hosted_events, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'host_id' })
   host: User;
 
