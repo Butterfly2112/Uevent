@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { AddressAutocomplete } from './AddressAutocomplete';
 // Get address by coordinates using Google Maps Geocoding API
 async function getAddressFromCoords(lat: number, lng: number): Promise<string> {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -345,40 +346,39 @@ export const EventRegistrationForm: React.FC<{
         </div>
         <div style={{flex:2, display:'flex', flexDirection:'column', gap:6}}>
           <label style={{fontWeight:500, fontSize:17, marginBottom:2}}>Address</label>
-          <input
-            type="text"
-            name="address"
+          <AddressAutocomplete
             value={form.address || ''}
-            onChange={handleChange}
-            placeholder="Address"
-            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 17, marginBottom: 8 }}
+            onChange={val => setForm(prev => ({ ...prev, address: val }))}
           />
-          {/* Карта для выбора адреса */}
-          <div style={{ width: '100%', height: 220, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 8px #ffe06655', marginTop: 4 }}>
-            <iframe
-              title="Pick location on map"
-              width="100%"
-              height="220"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(form.address || 'Kyiv, Ukraine')}&output=embed`}
-            ></iframe>
-            <div style={{position:'relative',top:'-220px',width:'100%',height:'220px',zIndex:2,cursor:'crosshair'}}
-              onClick={async (ev: React.MouseEvent<HTMLDivElement>) => {
-                const rect = (ev.target as HTMLDivElement).getBoundingClientRect();
-                const x = (ev.nativeEvent as MouseEvent).offsetX;
-                const y = (ev.nativeEvent as MouseEvent).offsetY;
-                const mapWidth = rect.width;
-                const lat = 50.45 + (0.02 * (110 - y) / 110); // rough estimate
-                const lng = 30.52 + (0.04 * (x - mapWidth/2) / (mapWidth/2));
-                const address = await getAddressFromCoords(lat, lng);
-                setForm(prev => ({ ...prev, address }));
-              }}
-              title="Click to select location"
-            ></div>
-          </div>
+        </div>
+      </div>
+
+      {/* Карта для выбора адреса ближе к правому краю под тикетс */}
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', margin: '24px 0' }}>
+        <div style={{ width: 400, height: 220, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 8px #ffe06655', position: 'relative' }}>
+          <iframe
+            title="Pick location on map"
+            width="100%"
+            height="220"
+            style={{ border: 0, borderRadius: 10 }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps?q=${encodeURIComponent(form.address || 'Kyiv, Ukraine')}&output=embed`}
+          ></iframe>
+          <div style={{position:'absolute',top:0,left:0,width:'100%',height:'220px',zIndex:2,cursor:'crosshair'}} 
+            onClick={async (ev: React.MouseEvent<HTMLDivElement>) => {
+              const rect = (ev.target as HTMLDivElement).getBoundingClientRect();
+              const x = (ev.nativeEvent as MouseEvent).offsetX;
+              const y = (ev.nativeEvent as MouseEvent).offsetY;
+              const mapWidth = rect.width;
+              const lat = 50.45 + (0.02 * (110 - y) / 110); // rough estimate
+              const lng = 30.52 + (0.04 * (x - mapWidth/2) / (mapWidth/2));
+              const address = await getAddressFromCoords(lat, lng);
+              setForm(prev => ({ ...prev, address }));
+            }}
+            title="Click to select location"
+          ></div>
         </div>
       </div>
       {/* Format, Visitor Visibility */}
