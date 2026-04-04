@@ -12,6 +12,8 @@ import RegisterCompany from './pages/RegisterCompany';
 import CompanyProfile from './pages/CompanyProfile';
 import EventPage from './pages/EventPage';
 import CreateEventPage from './pages/CreateEventPage';
+import AdminPanel from './pages/AdminPanel';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -29,6 +31,26 @@ function App() {
         <Route path="/company/:id" element={<CompanyProfileWrapper />} />
         <Route path="/event/:id" element={<EventPage />} />
         <Route path="/create-event" element={<CreateEventPage />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute
+              isAllowed={(() => {
+                try {
+                  const profileStr = localStorage.getItem('profile');
+                  if (!profileStr) return false;
+                  const user = JSON.parse(profileStr);
+                  return user.role === 'admin';
+                } catch {
+                  return false;
+                }
+              })()}
+              redirectPath="/login"
+            >
+              <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

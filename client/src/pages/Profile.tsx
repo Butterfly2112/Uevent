@@ -98,6 +98,7 @@ const Profile: React.FC = () => {
           email: data.email,
           avatar_url: data.avatar_url,
           company: data.company,
+          ...(data.role ? { role: data.role } : {})
         }));
         // If user is organizer, fetch their events
         if (data.company && data.company.id) {
@@ -318,7 +319,17 @@ const Profile: React.FC = () => {
           <a href="/">Home</a>
           <a href="/all-event-types">All Events</a>
           <a href="/create-event">Create Event</a>
-          <a href="/profile">Profile</a>
+          {(() => {
+            try {
+              const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+              if (profile.role === 'admin') {
+                return <a href="/admin">Admin Panel</a>;
+              }
+            } catch {
+              /* ignore */
+            }
+            return <a href="/profile">Profile</a>;
+          })()}
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
           {/* User avatar and logout */}
