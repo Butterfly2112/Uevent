@@ -3,13 +3,11 @@ import React, { useState } from 'react';
 import AdminUsersTab from './AdminUsersTab';
 import AdminCompaniesTab from './AdminCompaniesTab';
 import AdminEventsTab from './AdminEventsTab';
-import AdminNotificationsTab from './AdminNotificationsTab';
 
 const TABS = [
   { key: 'users', label: 'Users' },
   { key: 'companies', label: 'Companies' },
   { key: 'events', label: 'Events' },
-  { key: 'notifications', label: 'Notifications' },
 ];
 
 const AdminPanel: React.FC = () => {
@@ -44,7 +42,6 @@ const AdminPanel: React.FC = () => {
         {activeTab === 'users' && <AdminUsersTab />}
         {activeTab === 'companies' && <AdminCompaniesTab />}
         {activeTab === 'events' && <AdminEventsTab />}
-        {activeTab === 'notifications' && <AdminNotificationsTab />}
       </div>
     </div>
   );
