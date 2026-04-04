@@ -150,6 +150,9 @@ const Login: React.FC = () => {
           </button>
           {error && <div style={{ color: '#dc2626', marginTop: 8, fontSize: 14, textAlign: 'center' }}>{error}</div>}
         </form>
+        <div style={{ margin: '16px 0 0 0', textAlign: 'center' }}>
+          <a href="/reset-password" style={{ color: '#bfa800', textDecoration: 'underline', fontSize: 15 }}>Forgot password?</a>
+        </div>
         <div style={{ margin: '24px 0 0 0', textAlign: 'center' }}>
           <div style={{ marginBottom: 8, color: '#888' }}>or</div>
           <a

@@ -1,3 +1,5 @@
+import ResetPassword from './pages/ResetPassword';
+import NewPassword from './pages/NewPassword';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import Home from './pages/Home';
@@ -23,6 +25,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/password_reset" element={<NewPassword />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/all-event-types" element={<AllEventTypes />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
