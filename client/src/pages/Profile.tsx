@@ -328,7 +328,7 @@ const Profile: React.FC = () => {
             } catch {
               /* ignore */
             }
-            return <a href="/profile">Profile</a>;
+            return null;
           })()}
         </nav>
         <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12}}>
@@ -543,7 +543,7 @@ const Profile: React.FC = () => {
 
       {/* User's events block (if organizer) */}
       {user.company && user.company.id && (
-        <div style={{ maxWidth: 800, margin: '32px auto 0 auto', background: '#f7f7f7', borderRadius: 16, boxShadow: '0 2px 8px #e0e0e0', padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ maxWidth: 800, margin: '32px auto 40px auto', background: '#f7f7f7', borderRadius: 16, boxShadow: '0 2px 8px #e0e0e0', padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>My Events</h2>
           {userEventsLoading ? (
             <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
@@ -587,7 +587,7 @@ const Profile: React.FC = () => {
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
-        <div className="footer-row copyright" style={{ fontWeight: 400, marginRight: 30, textAlign: 'left' }}>© 2026 Uevent</div>
+        <div className="footer-row copyright" style={{ fontWeight: 400, marginRight: 10, textAlign: 'left' }}>© 2026 Uevent</div>
       </footer>
     </div>
   );

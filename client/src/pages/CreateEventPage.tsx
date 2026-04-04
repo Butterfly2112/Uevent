@@ -171,7 +171,7 @@ const CreateEventPage: React.FC = () => {
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
-        <div className="footer-row copyright">© 2026 Uevent</div>
+        <div className="footer-row copyright" style={{ marginRight: 10 }}>© 2026 Uevent</div>
       </footer>
     </div>
   );

@@ -1,3 +1,10 @@
+/* Отступ снизу для блока компании (Company News и Events) */
+.company-block {
+  margin-bottom: 48px;
+}
+.main-nav a {
+  font-family: Arial, sans-serif;
+}
 
 .sign-in-btn {
   background: linear-gradient(90deg, #f7f48b 0%, #f3d250 100%) !important;

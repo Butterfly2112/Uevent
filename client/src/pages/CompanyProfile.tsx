@@ -433,7 +433,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         }}
       >
         {/* NEWS COLUMN */}
-        <div style={{ flex: 1, minWidth: 320, maxWidth: 480 }}>
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 480, marginBottom: 40 }}>
           <h3 style={{ fontSize: 26, color: '#222', fontWeight: 700, letterSpacing: 0.5, marginBottom: 18 }}>Company News</h3>
           <div style={{
             background: 'rgba(120,120,120,0.06)',
@@ -524,7 +524,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
           </div>
         </div>
         {/* EVENTS COLUMN */}
-        <div style={{ flex: 1, minWidth: 320, maxWidth: 600 }}>
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 600, marginBottom: 40 }}>
           <h3 style={{ fontSize: 26, color: '#222', fontWeight: 700, letterSpacing: 0.5, marginBottom: 18 }}>Company Events</h3>
           <div style={{
             background: '#fff',
@@ -747,7 +747,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
-        <div className="footer-row copyright" style={{ marginRight: 32, padding: '32px 0px 10px' }}>© 2026 Uevent</div>
+        <div className="footer-row copyright" style={{ marginRight: 10, padding: '32px 0px 10px' }}>© 2026 Uevent</div>
       </footer>
     </div>
   );

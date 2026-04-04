@@ -177,7 +177,7 @@ const EventPage: React.FC = () => {
 
   return (
     <div className="home-root">
-      <header className="home-header">
+      <header className="home-header" style={{ background: '#fff', borderBottom: '1px solid #e0e0c0', display: 'flex', alignItems: 'center', padding: '12px 24px', gap: 16 }}>
         <a href="/" className="logo-block" style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'bold', marginRight: 16, textDecoration: 'none' }}>
           <span className="logo-text" style={{ fontFamily: 'Kavivanar, cursive', fontSize: 32, color: '#111' }}>Uevent</span>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
@@ -421,7 +421,7 @@ const EventPage: React.FC = () => {
           <a href="/how-it-works">How it works</a>
           <a href="/about-us">About us</a>
         </div>
-        <div className="footer-row copyright">© 2026 Uevent</div>
+        <div className="footer-row copyright" style={{ marginRight: 10 }}>© 2026 Uevent</div>
       </footer>
     </div>
   );
