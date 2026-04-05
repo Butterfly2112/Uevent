@@ -88,19 +88,19 @@ export class NotificationsService {
       case NotificationType.PAYMENT_SUCCESS:
         return {
           title: 'Payment successful',
-          message: 'Your payment was successful',
+          message: `Your payment for "${data.event?.title}" was successful`,
         };
 
       case NotificationType.EVENT_COMMENT:
         return {
           title: 'New comment',
-          message: 'Someone commented on your event',
+          message: `${data.userName || 'Someone'} commented on your event "${data.event?.title}"`,
         };
 
       case NotificationType.COMMENT_REPLY:
         return {
           title: 'Reply to your comment',
-          message: 'Someone replied to your comment',
+          message: `${data.userName || 'Someone'} replied to your comment on "${data.event?.title}"`,
         };
 
       case NotificationType.REFUND_SUCCESS:
@@ -164,7 +164,7 @@ export class NotificationsService {
           await this.emailService.sendReminder(
             notification.user.login,
             notification.user.email,
-            notification.title,
+            event?.title || 'Your Event',
             event?.start_date,
           );
           break;

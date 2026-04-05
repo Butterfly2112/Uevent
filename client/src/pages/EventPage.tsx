@@ -6,8 +6,14 @@ import { useParams } from 'react-router-dom';
 import { getAvatarUrl } from '../components/getAvatarUrl';
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
-import { loadStripe } from '@stripe/stripe-js';
 import { useNavigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 
 interface Ticket {
   id: number;
@@ -94,6 +100,8 @@ const EventPage: React.FC = () => {
   const [followLoading, setFollowLoading] = useState(false);
   const [followError, setFollowError] = useState('');
   const navigate = useNavigate();
+
+  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
   useEffect(() => {
     if (!event) return;
@@ -356,8 +364,178 @@ const EventPage: React.FC = () => {
     }
   };
 
+  const CheckoutForm = ({ event, promoCode, currentUser, onClose, navigate }: any) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [buyLoading, setBuyLoading] = useState(false);
+    const [buyError, setBuyError] = useState('');
+    const [showInList, setShowInList] = useState(true);
+
+    const handlePayment = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!stripe || !elements) return;
+
+      setBuyLoading(true);
+      setBuyError('');
+
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('access_token');
+
+        const createRes = await fetch(`${apiUrl}/tickets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            userId: currentUser.id,
+            eventId: event.id,
+            promoCode: promoCode || undefined,
+            user_is_visible_to_public: showInList,
+          }),
+        });
+
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          throw new Error(err.message === 'Ticket already exists' ? 'You already have a ticket for this event' : err.message);
+        }
+
+        const ticket = await createRes.json();
+
+        const paymentRes = await fetch(`${apiUrl}/tickets/create-payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ ticketId: ticket.id }),
+        });
+
+        if (!paymentRes.ok) throw new Error(await paymentRes.text());
+        const payment = await paymentRes.json();
+
+        if (payment.free) {
+          await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
+            method: 'POST',
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          });
+          navigate(`/purchase-success/${ticket.id}`);
+          return;
+        }
+
+        if (payment.isFake) {
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } else {
+
+          const cardElement = elements.getElement(CardElement);
+          if (!cardElement) throw new Error('Card element not found');
+
+          const result = await stripe.confirmCardPayment(payment.clientSecret, {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: currentUser.login,
+              },
+            },
+          });
+
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+        }
+
+        const payRes = await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
+          method: 'POST',
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+
+        if (!payRes.ok) throw new Error(await payRes.text());
+
+        const payData = await payRes.json();
+        if (payData.redirect_url) {
+          window.location.href = payData.redirect_url;
+        } else {
+          navigate(`/purchase-success/${ticket.id}`);
+        }
+        onClose();
+
+      } catch (e) {
+        setBuyError(e instanceof Error ? e.message : 'Error processing payment');
+      } finally {
+        setBuyLoading(false);
+      }
+    };
+
+    return (
+        <form onSubmit={handlePayment} style={{ width: '100%' }}>
+          <div style={{
+            padding: '12px 14px',
+            background: '#fff',
+            borderRadius: 10,
+            border: '1px solid #e0e0c0',
+            marginBottom: 16,
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <CardElement options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#424770',
+                  '::placeholder': { color: '#aab7c4' },
+                },
+                invalid: { color: '#9e2146' },
+              },
+            }} />
+          </div>
+
+          {buyError && (
+              <div style={{ background: '#ffe3e3', color: '#c92a2a', padding: '10px 14px', borderRadius: 10, textAlign: 'center', fontSize: 14, marginBottom: 16 }}>
+                {buyError}
+              </div>
+          )}
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 16,
+            padding: '0 10px'
+          }}>
+            <input
+                type="checkbox"
+                id="privacyCheck"
+                checked={showInList}
+                onChange={(e) => setShowInList(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+            />
+            <label htmlFor="privacyCheck" style={{ fontSize: 14, color: '#444', cursor: 'pointer' }}>
+              Show my name in the public participants list
+            </label>
+          </div>
+
+          <button
+              type="submit"
+              disabled={!stripe || buyLoading}
+              style={{
+                width: '100%',
+                background: '#ffe066',
+                border: '1px solid #ffd43b',
+                borderRadius: 10,
+                padding: '10px 0',
+                fontWeight: 700,
+                cursor: (!stripe || buyLoading) ? 'not-allowed' : 'pointer',
+                boxShadow: '0 1px 6px #ffe066',
+              }}
+          >
+            {buyLoading ? 'Processing...' : 'Pay with Card'}
+          </button>
+        </form>
+    );
+  };
+
   const [showBuyModal, setShowBuyModal] = useState(false);
-  const [buyLoading, setBuyLoading] = useState(false);
   const [buyError, setBuyError] = useState('');
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -683,147 +861,24 @@ const EventPage: React.FC = () => {
                       </div>
                   )}
 
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    marginTop: 16,
-                  }}>
-                    <button
-                        onClick={async () => {
-                          try {
-                            setBuyLoading(true);
-                            setBuyError('');
-
-                            const apiUrl = import.meta.env.VITE_API_URL || '';
-                            const token = localStorage.getItem('access_token');
-                            const user = JSON.parse(localStorage.getItem('profile') || 'null');
-
-                            const createRes = await fetch(`${apiUrl}/tickets`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                              },
-                              body: JSON.stringify({
-                                userId: user.id,
-                                eventId: event.id,
-                                promoCode: promoCode || undefined,
-                              }),
-                            });
-
-                            if (!createRes.ok) {
-                              const err = await createRes.json();
-
-                              if (err.message === 'Ticket already exists') {
-                                throw new Error('You already have a ticket for this event');
-                              }
-
-                              throw new Error(err.message || 'Error creating ticket');
-                            }
-
-                            const ticket = await createRes.json();
-
-                            const paymentRes = await fetch(`${apiUrl}/tickets/create-payment`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                              },
-                              body: JSON.stringify({
-                                ticketId: ticket.id,
-                              }),
-                            });
-
-                            if (!paymentRes.ok) throw new Error(await paymentRes.text());
-
-                            const payment = await paymentRes.json();
-
-                            if (payment.free) {
-                              await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
-                                method: 'POST',
-                                headers: {
-                                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                                },
-                              });
-
-                              navigate(`/purchase-success/${ticket.id}`);
-                              return;
-                            }
-
-                            const stripe = await loadStripe(
-                                import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-                            );
-
-                            if (!stripe) {
-                              throw new Error('Stripe not loaded');
-                            }
-
-                            const result = await stripe.confirmCardPayment(payment.clientSecret, {
-                              payment_method: {
-                                card: {
-                                  token: 'tok_visa',
-                                },
-                              },
-                            });
-
-                            if (result.error) {
-                              throw new Error(result.error.message);
-                            }
-
-                            const payRes = await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
-                              method: 'POST',
-                              headers: {
-                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                              },
-                            });
-
-                            if (!payRes.ok) throw new Error(await payRes.text());
-
-                            const payData = await payRes.json();
-
-                            if (payData.redirect_url) {
-                              window.location.href = payData.redirect_url;
-                            } else {
-                              navigate(`/purchase-success/${ticket.id}`);
-                            }
-                            setShowBuyModal(false);
-
-                          } catch (e) {
-                            setBuyError(e instanceof Error ? e.message : 'Error');
-                          } finally {
-                            setBuyLoading(false);
-                          }
-                        }}
-                        style={{
-                          width: '50%',
-                          background: '#ffe066',
-                          border: '1px solid #ffd43b',
-                          borderRadius: 10,
-                          padding: '10px 0',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          boxShadow: '0 1px 6px #ffe066',
-                        }}
-                    >
-                      {buyLoading ? 'Processing...' : 'Pay'}
-                    </button>
-
-                    <button
-                        onClick={() => setShowBuyModal(false)}
-                        style={{
-                          position: 'absolute',
-                          top: 12,
-                          right: 16,
-                          background: 'none',
-                          border: 'none',
-                          fontSize: 22,
-                          cursor: 'pointer',
-                          color: '#888',
-                        }}
-                    >
-                      ×
-                    </button>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                    <Elements stripe={stripePromise}>
+                      <CheckoutForm
+                          event={event}
+                          promoCode={promoCode}
+                          currentUser={currentUser}
+                          onClose={() => setShowBuyModal(false)}
+                          navigate={navigate}
+                      />
+                    </Elements>
                   </div>
+
+                  <button
+                      onClick={() => setShowBuyModal(false)}
+                      style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
           )}
