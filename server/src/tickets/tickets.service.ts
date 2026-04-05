@@ -384,35 +384,44 @@ export class TicketsService {
         .stroke('#ffd43b');
       doc.undash();
 
-      if (ticket.event.poster_url && ticket.event.poster_url !== 'default') {
-        try {
-          const localImagePath = path.join(
-            process.cwd(),
-            ticket.event.poster_url.replace(/^\//, ''),
-          );
+      const defaultImagePath = path.join(
+        process.cwd(),
+        'assets',
+        'images',
+        'default-event.png',
+      );
 
-          if (fs.existsSync(localImagePath)) {
-            doc.image(localImagePath, 70, 120, {
-              fit: [120, 120],
-              align: 'center',
-              valign: 'center',
-            });
-          } else {
-            doc.rect(70, 120, 120, 120).fill('#ffe066');
-            doc
-              .fillColor('#bfa800')
-              .fontSize(12)
-              .text('No Image', 70, 175, { width: 120, align: 'center' });
-          }
-        } catch (e) {
-          console.warn('Could not download poster for PDF:', e);
+      console.log('Шукаю дефолтне фото за адресою:', defaultImagePath);
+      console.log('Чи існує файл:', fs.existsSync(defaultImagePath));
+      let finalImagePath = defaultImagePath;
+
+      if (ticket.event.poster_url && ticket.event.poster_url !== 'default') {
+        const localImagePath = path.join(
+          process.cwd(),
+          ticket.event.poster_url.replace(/^\//, ''),
+        );
+
+        if (fs.existsSync(localImagePath)) {
+          finalImagePath = localImagePath;
         }
-      } else {
-        doc.rect(70, 120, 120, 120).fill('#ffe066');
-        doc
-          .fillColor('#bfa800')
-          .fontSize(12)
-          .text('Uevent', 70, 175, { width: 120, align: 'center' });
+      }
+
+      try {
+        if (fs.existsSync(finalImagePath)) {
+          doc.image(finalImagePath, 70, 120, {
+            fit: [120, 120],
+            align: 'center',
+            valign: 'center',
+          });
+        } else {
+          doc.rect(70, 120, 120, 120).fill('#ffe066');
+          doc
+            .fillColor('#bfa800')
+            .fontSize(12)
+            .text('No Image', 70, 175, { width: 120, align: 'center' });
+        }
+      } catch (e) {
+        console.warn('Could not render poster for PDF:', e);
       }
 
       doc.fontSize(20).fillColor('#222').text(ticket.event.title, 210, 120, {
@@ -447,7 +456,7 @@ export class TicketsService {
       doc
         .fontSize(24)
         .fillColor('#000')
-        .text(`${ticket.price_paid} ₴`, 390, 160, {
+        .text(`${ticket.price_paid} UAH`, 390, 160, {
           width: 140,
           align: 'center',
         });
