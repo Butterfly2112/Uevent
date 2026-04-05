@@ -1,3 +1,22 @@
+/* --- Events layout row for profile --- */
+.profile-events-row {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 32px auto 24px auto;
+  max-width: 1700px;
+}
+
+@media (max-width: 1100px) {
+  .profile-events-row {
+    flex-direction: column;
+    gap: 24px;
+    margin: 24px auto 16px auto;
+    max-width: 900px;
+  }
+}
 .company-block {
   margin-bottom: 48px;
 }
