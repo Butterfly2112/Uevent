@@ -17,6 +17,7 @@ export class UpdateEventDto {
     description: 'Owner wants to get notifications about new atendees or not',
   })
   @IsOptional()
+  @Type(() => Boolean)
   @IsBoolean()
   notificate_owner?: boolean;
 
