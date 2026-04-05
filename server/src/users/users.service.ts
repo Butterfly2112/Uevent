@@ -295,13 +295,27 @@ export class UsersService {
     };
   }
 
-  async getFollowing(userId: number): Promise<FollowingResponseDto> {
+  async getFollowing(
+    userId: number,
+    userRole: string,
+  ): Promise<FollowingResponseDto> {
     const [following, following_count] =
-      await this.usersRepository.findAndCountBy({
-        followers: { id: userId },
+      await this.usersRepository.findAndCount({
+        where: { followers: { id: userId } },
+        relations: {
+          company: { owner: true },
+        },
       });
 
-    return { following: following.map(toUserResponse), following_count };
+    return {
+      following: following.map((user) =>
+        toUserDetailedInfo(user, {
+          owner: false,
+          admin: userRole === 'admin',
+        }),
+      ),
+      following_count,
+    };
   }
 
   async getUserForService(userId: number): Promise<User | null> {
