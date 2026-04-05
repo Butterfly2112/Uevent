@@ -101,17 +101,30 @@ export class AuthService {
     username: string;
     avatar: string;
   }): Promise<AuthResponse> {
-    let user = await this.usersService.findByLoginOrEmail(googleUser.email);
+    let user = await this.usersService.findByGoogleId(googleUser.googleId);
 
     if (!user) {
-      const login = googleUser.email.split('@')[0];
-      user = await this.usersService.createGoogleUser(
-        login,
-        googleUser.username,
+      const existingUser = await this.usersService.findByLoginOrEmail(
         googleUser.email,
-        googleUser.googleId,
-        googleUser.avatar,
       );
+
+      if (existingUser) {
+        if (!existingUser.google_id) {
+          throw new ConflictException(
+            'An account with this email already exists. Please log in with password.',
+          );
+        }
+        user = existingUser;
+      } else {
+        const login = googleUser.email.split('@')[0] + '_' + Date.now();
+        user = await this.usersService.createGoogleUser(
+          login,
+          googleUser.username,
+          googleUser.email,
+          googleUser.googleId,
+          googleUser.avatar,
+        );
+      }
     }
 
     const { accessToken, refreshJwtToken } = await this.generateJwtTokens(user);

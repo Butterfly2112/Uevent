@@ -114,7 +114,7 @@ export class CompanyService {
       relations: { owner: true, news: true },
     });
 
-    if (userRole != 'admin' && userId != company?.owner.id) {
+    if (userRole != 'admin' && userId != company?.owner?.id) {
       throw new ForbiddenException(
         'Only owner of the company or admin can delete it',
       );

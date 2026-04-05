@@ -164,7 +164,7 @@ export class EventService {
     const visible_event = checkVisibilityOfEvent(
       event,
       {
-        owner: userId === event.host.id,
+        owner: userId === event.host?.id,
         admin: userRole === 'admin',
       },
       userId,
@@ -192,7 +192,7 @@ export class EventService {
       throw new NotFoundException('Event not found');
     }
 
-    if (event.host.id != userId && userRole != 'admin') {
+    if (event.host?.id != userId && userRole != 'admin') {
       throw new ForbiddenException('Only owner and admin can delete event');
     }
 
@@ -343,7 +343,7 @@ export class EventService {
     });
 
     if (!event) throw new NotFoundException('Event not found');
-    if (event.host.id === userId) {
+    if (event.host?.id === userId) {
       throw new ConflictException(
         'You cannot follow your own event. Why? Because I said so',
       );

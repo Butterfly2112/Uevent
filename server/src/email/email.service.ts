@@ -41,6 +41,23 @@ export class EmailService {
     console.log('Message send: ', info.messageId);
   }
 
+  async sendWelcomeMessageGoogle(
+    username: string,
+    email: string,
+  ): Promise<void> {
+    const info = await this.transporter.sendMail({
+      from: `"Uevent" <${this.configService.get('SMTP_USER')}>`,
+      to: email,
+      subject: 'Thanks for choosing Uevent',
+      html: `
+      <h1>Dear ${username}</h1>
+      <h1>Welcome to the Uevent</h1>
+      <p>You successfully registered using your Google account</p>`,
+    });
+
+    console.log('Message send: ', info.messageId);
+  }
+
   async sendResetEmailConfirmation(
     username: string,
     email: string,

@@ -134,7 +134,7 @@ export class UsersController {
   @Get('following')
   @UseGuards(AuthGuard)
   async getFollowing(@Req() req: RequestWithUser) {
-    return await this.usersService.getFollowing(req.user.id);
+    return await this.usersService.getFollowing(req.user.id, req.user.role);
   }
 
   @ApiOperation({

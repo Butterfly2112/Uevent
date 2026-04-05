@@ -146,20 +146,27 @@ export class AuthController {
     @Req() req: any,
     @Res({ passthrough: false }) res: Response,
   ) {
-    const { access_token, refresh_token } =
-      await this.authService.loginWithGoogle(req.user);
-
-    res.cookie('refreshToken', refresh_token, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
-
     const frontendUrl =
       (await this.configService.get('FRONTEND_URL')) || 'http://localhost:3000';
-    console.log(frontendUrl);
-    return res.redirect(`${frontendUrl}/login?token=${access_token}`);
+
+    try {
+      const { access_token, refresh_token } =
+        await this.authService.loginWithGoogle(req.user);
+
+      res.cookie('refreshToken', refresh_token, {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      return res.redirect(`${frontendUrl}/login?token=${access_token}`);
+    } catch (error: any) {
+      const errorMessage = encodeURIComponent(
+        error.message || 'An error occurred during Google authentication',
+      );
+      return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
+    }
   }
 
   @ApiOperation({

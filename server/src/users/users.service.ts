@@ -31,6 +31,7 @@ import {
 } from 'src/events/entities/event.entity';
 import { toVisibleEvents } from 'src/common/mappers/event.mapper';
 import { EventResponse } from 'src/events/types/eventResponse.type';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class UsersService {
@@ -38,6 +39,7 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private uploadService: UploadService,
+    private emailService: EmailService,
   ) {}
 
   async create(
@@ -293,13 +295,27 @@ export class UsersService {
     };
   }
 
-  async getFollowing(userId: number): Promise<FollowingResponseDto> {
+  async getFollowing(
+    userId: number,
+    userRole: string,
+  ): Promise<FollowingResponseDto> {
     const [following, following_count] =
-      await this.usersRepository.findAndCountBy({
-        followers: { id: userId },
+      await this.usersRepository.findAndCount({
+        where: { followers: { id: userId } },
+        relations: {
+          company: { owner: true },
+        },
       });
 
-    return { following: following.map(toUserResponse), following_count };
+    return {
+      following: following.map((user) =>
+        toUserDetailedInfo(user, {
+          owner: false,
+          admin: userRole === 'admin',
+        }),
+      ),
+      following_count,
+    };
   }
 
   async getUserForService(userId: number): Promise<User | null> {
@@ -334,6 +350,12 @@ export class UsersService {
     return { users: users.map(mapUserForAdmin), total };
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return await this.usersRepository.findOne({
+      where: { google_id: googleId },
+    });
+  }
+
   async createGoogleUser(
     login: string,
     username: string,
@@ -349,6 +371,8 @@ export class UsersService {
       avatar_url,
       is_email_verified: true,
     });
+
+    this.emailService.sendWelcomeMessageGoogle(user.username, email);
 
     return await this.usersRepository.save(user);
   }
