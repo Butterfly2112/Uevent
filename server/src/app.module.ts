@@ -13,6 +13,14 @@ import { TicketsModule } from './tickets/tickets.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { UploadModule } from './upload/upload.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SeedService } from './seed.service';
+import { User } from './users/entities/user.entity';
+import { Comment } from './comments/entities/comment.entity';
+import { Company } from './companies/entities/company.entity';
+import { CompanyNews } from './companies/entities/company-news.entity';
+import { Event } from './events/entities/event.entity';
+import { PromoCode } from './events/entities/promo-code.entity';
+import { Ticket } from './tickets/entities/ticket.entity';
 
 @Module({
   imports: [
@@ -33,6 +41,15 @@ import { ScheduleModule } from '@nestjs/schedule';
           configService.get<string>('NODE_ENV') === 'development' || false,
       }),
     }),
+    TypeOrmModule.forFeature([
+      User,
+      Comment,
+      Company,
+      CompanyNews,
+      Event,
+      PromoCode,
+      Ticket,
+    ]),
     AuthModule,
     UsersModule,
     CommentsModule,
@@ -48,6 +65,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       provide: APP_FILTER,
       useClass: ErrorFilter,
     },
+    SeedService,
   ],
 })
 export class AppModule {}
