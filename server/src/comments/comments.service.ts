@@ -35,7 +35,7 @@ export class CommentsService {
       !checkVisibilityOfEvent(
         event,
         {
-          owner: userId === event.host.id,
+          owner: userId === event.host?.id,
           admin: userRole === 'admin',
         },
         userId,
