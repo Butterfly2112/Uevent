@@ -7,6 +7,7 @@ import './Profile.css';
 import planetIcon from '../assets/planet.svg';
 import { HeaderUserBlock } from '../components/HeaderUserBlock';
 
+
 type PromoCode = {
   code: string;
   discount_percentage: number;
@@ -41,6 +42,18 @@ interface News {
   created_at: string;
 }
 
+interface UserShort {
+  id: number;
+  login: string;
+  username: string;
+  avatar_url: string;
+}
+
+interface FollowersResponse {
+  followers: UserShort[];
+  followers_count: number;
+}
+
 interface Company {
   id: number;
   name: string;
@@ -56,11 +69,14 @@ interface Company {
   };
   events?: Event[];
   news?: News[];
+  is_following?: boolean;
 }
 
 
 const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
   const navigate = useNavigate();
+  // State for showing followers list (only for owner, on click)
+  const [showFollowersList, setShowFollowersList] = useState(false);
   // Deleted state must be defined before any conditional rendering
   const [deleted, setDeleted] = useState(false);
   // State for event registration modal
@@ -223,6 +239,75 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
   const [openNews, setOpenNews] = useState<News | null>(null);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+    const [followers, setFollowers] = useState<UserShort[]>([]);
+    const [followersCount, setFollowersCount] = useState<number>(0);
+    const [followersLoading, setFollowersLoading] = useState(false);
+    const [followersError, setFollowersError] = useState<string | null>(null);
+  let isOwner = false;
+  let isAdmin = false;
+  let user: { id: number; role?: string } | null = null;
+  try {
+    const userStr = localStorage.getItem('profile');
+    if (userStr && company?.owner) {
+      user = JSON.parse(userStr);
+      isOwner = !!user && user.id === company.owner.id;
+      isAdmin = !!user && user.role === 'admin';
+    }
+  } catch {
+    // ignore error, fallback to not owner/admin
+  }
+
+  useEffect(() => {
+    if (!isOwner || !company?.owner) return;
+    const fetchFollowers = async () => {
+      setFollowersLoading(true);
+      setFollowersError(null);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('access_token');
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`${apiUrl}/users/followers`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        const data: FollowersResponse = await res.json();
+        setFollowers(data.followers);
+        setFollowersCount(data.followers_count);
+      } catch (e) {
+        setFollowersError(e instanceof Error ? e.message : 'Error loading followers');
+      } finally {
+        setFollowersLoading(false);
+      }
+    };
+    fetchFollowers();
+  }, [isOwner, company?.owner]);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState<string | null>(null);
+  const handleToggleFollow = async () => {
+    if (!company || !company.owner) return;
+    setSubLoading(true);
+    setSubError(null);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const isFollowing = company.is_following;
+      const url = `${apiUrl}/users/${isFollowing ? 'unfollow' : 'follow'}/${company.owner.id}`;
+      const res = await fetch(url, { method: 'POST', headers });
+      if (!res.ok) throw new Error(await res.text());
+      // Обновляем компанию с сервера, но is_following выставляем вручную
+      const companyRes = await fetch(`${apiUrl}/companies/${company.id}`, { headers });
+      let updated = company;
+      if (companyRes.ok) {
+        updated = await companyRes.json();
+      }
+      setCompany({ ...updated, is_following: !isFollowing });
+    } catch (e) {
+      setSubError(e instanceof Error ? e.message : 'Error following company');
+    } finally {
+      setSubLoading(false);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNewsForm, setShowNewsForm] = useState(false);
@@ -322,19 +407,7 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
     </div>
   );
 
-  let isOwner = false;
-  let isAdmin = false;
-  let user: { id: number; role?: string } | null = null;
-  try {
-    const userStr = localStorage.getItem('profile');
-    if (userStr && company.owner) {
-      user = JSON.parse(userStr);
-      isOwner = !!user && user.id === company.owner.id;
-      isAdmin = !!user && user.role === 'admin';
-    }
-  } catch {
-    // ignore error, fallback to not owner/admin
-  }
+  // (удалено дублирующее объявление user, isOwner, isAdmin)
 
 
 
@@ -416,27 +489,61 @@ const CompanyProfile: React.FC<{ id: number }> = ({ id }) => {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0 }}>
           <div className="profile-info" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left' }}>
             <h2 style={{ margin: 0, fontSize: 32, color: '#222' }}>{company.name}</h2>
+            {user && company.owner && user.id !== company.owner.id && (
+              <button
+                onClick={handleToggleFollow}
+                disabled={subLoading}
+                style={{
+                  marginTop: 8,
+                  background: company.is_following ? '#fffbe6' : '#ffe066',
+                  border: '1.5px solid #bfa800',
+                  color: '#222',
+                  borderRadius: 8,
+                  padding: '8px 22px',
+                  fontWeight: 600,
+                  cursor: subLoading ? 'not-allowed' : 'pointer',
+                  fontSize: 16,
+                  alignSelf: 'flex-start',
+                  minWidth: 120,
+                }}
+              >
+                {subLoading
+                  ? '...'
+                  : company.is_following
+                    ? 'Unfollow'
+                    : 'Follow'}
+              </button>
+            )}
+            {subError && <div style={{ color: '#d32f2f', fontSize: 14, marginTop: 4 }}>{subError}</div>}
             <div style={{ color: '#888', fontSize: 18 }}><b>Email:</b> {company.email_for_info}</div>
             <div style={{ color: '#888', fontSize: 18 }}><b>Location:</b> {company.location || <span style={{color:'#bbb'}}>Not specified</span>}</div>
             {isOwner && (
-              <button
-                onClick={() => {
-                  setEditCompanyForm({
-                    name: company.name || '',
-                    email_for_info: company.email_for_info || '',
-                    location: company.location || '',
-                    description: company.description || '',
-                    picture: null,
-                  });
-                  setEditCompanyPreview(company.picture_url ? (company.picture_url.startsWith('/uploads') ? (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '') + company.picture_url : company.picture_url) : null);
-                  setShowEditCompany(true);
-                  setEditCompanyMessage('');
-                }}
-                style={{ marginTop: 8, background: '#ffe066', border: '1px solid #bfa800', color: '#222', borderRadius: 8, padding: '8px 22px', fontWeight: 600, cursor: 'pointer', fontSize: 16, alignSelf: 'flex-start' }}
-              >
-                Edit company
-              </button>
+              <div style={{ marginTop: 18, background: '#fffbe6', border: '1.5px solid #ffe066', borderRadius: 10, padding: 16, maxWidth: 340 }}>
+                <div
+                  style={{ fontWeight: 600, fontSize: 18, marginBottom: 8, cursor: 'pointer', userSelect: 'none', display: 'inline-block' }}
+                  onClick={() => setShowFollowersList((v) => !v)}
+                  title={showFollowersList ? 'Hide followers' : 'Show followers'}
+                >
+                  Followers ({followersCount})
+                </div>
+                {showFollowersList && (
+                  <>
+                    {followersLoading && <div>Loading...</div>}
+                    {followersError && <div style={{ color: '#d32f2f' }}>{followersError}</div>}
+                    {!followersLoading && !followersError && followers.length === 0 && <div style={{ color: '#888' }}>No followers</div>}
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                      {followers.map(f => (
+                        <li key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                          <span style={{ fontWeight: 500 }}>{f.username}</span>
+                          <span style={{ color: '#888', fontSize: 13 }}>@{f.login}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
             )}
+
             {/* Edit Company Modal */}
             {(isOwner || isAdmin) && showEditCompany && (
               <div style={{
