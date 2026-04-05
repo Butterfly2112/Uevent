@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { fetchWithAuth } from '../components/fetchWithAuth';
 import Logout from '../components/Logout';
 import './Profile.css';
+import './ProfileEventsBlock.css';
+import { FaCalendarAlt, FaRegStar } from 'react-icons/fa';
 import { getAvatarUrl } from '../components/getAvatarUrl';
 import readIcon from '../assets/read.png';
 import deleteIcon from '../assets/delete.png';
@@ -55,6 +57,11 @@ const Profile: React.FC = () => {
   const [userEvents, setUserEvents] = useState<Event[]>([]);
   const [userEventsLoading, setUserEventsLoading] = useState(false);
   const [userEventsError, setUserEventsError] = useState<string | null>(null);
+
+  // State for events the user is subscribed to
+  const [subscribedEvents, setSubscribedEvents] = useState<Event[]>([]);
+  const [subscribedEventsLoading, setSubscribedEventsLoading] = useState(false);
+  const [subscribedEventsError, setSubscribedEventsError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -124,6 +131,26 @@ const Profile: React.FC = () => {
           } finally {
             setUserEventsLoading(false);
           }
+        }
+
+        // Fetch events the user is subscribed to
+        setSubscribedEventsLoading(true);
+        setSubscribedEventsError(null);
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+          const subscribedRes = await fetchWithAuth(`${apiUrl}/users/following-events`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!subscribedRes.ok) throw new Error(await subscribedRes.text());
+          const subscribedData = await subscribedRes.json();
+          const eventsArr: Event[] = Array.isArray(subscribedData.events)
+            ? subscribedData.events
+            : [];
+          setSubscribedEvents(eventsArr);
+        } catch (e) {
+          setSubscribedEventsError(e instanceof Error ? e.message : 'Loading error');
+        } finally {
+          setSubscribedEventsLoading(false);
         }
       } catch {
         setError('Network error');
@@ -541,19 +568,65 @@ const Profile: React.FC = () => {
     </div>
 
 
-      {/* User's events block (if organizer) */}
-      {user.company && user.company.id && (
-        <div style={{ maxWidth: 800, margin: '32px auto 40px auto', background: '#f7f7f7', borderRadius: 16, boxShadow: '0 2px 8px #e0e0e0', padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#222' }}>My Events</h2>
-          {userEventsLoading ? (
-            <div style={{ color: '#888', fontSize: 16 }}>Loading...</div>
-          ) : userEventsError ? (
-            <div style={{ color: 'red', fontSize: 16 }}>{userEventsError}</div>
-          ) : userEvents.length === 0 ? (
-            <div style={{ color: '#aaa', fontSize: 16 }}>You don't have any created events yet.</div>
+
+
+
+      <div className="profile-events-row">
+        {user.company && user.company.id && (
+          <section className="profile-events-section" style={{ background: '#fffde7', minWidth: 340, flex: 1 }}>
+            <div className="profile-events-header" style={{ background: 'linear-gradient(90deg, #fff693 0%, #fff9ce 100%)' }}>
+              <FaCalendarAlt style={{ color: '#f3d250', fontSize: 28, marginRight: 8 }} />
+              <span style={{ fontSize: 22, fontWeight: 700, color: '#222' }}>My Events</span>
+            </div>
+            {userEventsLoading ? (
+              <div className="profile-events-loading">Loading...</div>
+            ) : userEventsError ? (
+              <div className="profile-events-error">{userEventsError}</div>
+            ) : userEvents.length === 0 ? (
+              <div className="profile-events-empty">You don't have any created events yet.</div>
+            ) : (
+              <div className="profile-events-list">
+                {userEvents.map((ev) => {
+                  let imgSrc = '';
+                  if (ev.poster_url && ev.poster_url !== 'default') {
+                    imgSrc = ev.poster_url;
+                    if (imgSrc.startsWith('/uploads')) {
+                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                      const baseUrl = apiUrl.replace(/\/api$/, '');
+                      imgSrc = baseUrl + imgSrc;
+                    }
+                  } else {
+                    imgSrc = '/default-event.png';
+                  }
+                  return (
+                    <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                      <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                      <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
+                      {ev.end_date && (
+                        <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+        <section className="profile-events-section" style={{ background: '#f0f7ff', minWidth: 340, flex: 1 }}>
+          <div className="profile-events-header" style={{ background: 'linear-gradient(90deg, #fff693 0%, #fff9ce 100%)' }}>
+            <FaRegStar style={{ color: '#bfa800', fontSize: 28, marginRight: 8 }} />
+            <span style={{ fontSize: 22, fontWeight: 700, color: '#222' }}>Subscribed Events</span>
+          </div>
+          {subscribedEventsLoading ? (
+            <div className="profile-events-loading">Loading...</div>
+          ) : subscribedEventsError ? (
+            <div className="profile-events-error">{subscribedEventsError}</div>
+          ) : subscribedEvents.length === 0 ? (
+            <div className="profile-events-empty">You are not subscribed to any events yet.</div>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', width: '100%' }}>
-              {userEvents.map((ev) => {
+            <div className="profile-events-list">
+              {subscribedEvents.map((ev) => {
                 let imgSrc = '';
                 if (ev.poster_url && ev.poster_url !== 'default') {
                   imgSrc = ev.poster_url;
@@ -578,8 +651,8 @@ const Profile: React.FC = () => {
               })}
             </div>
           )}
-        </div>
-      )}
+        </section>
+      </div>
 
       <footer className="home-footer" style={{ width: '100%', margin: 0, marginTop: 'auto' }}>
         <div className="footer-row">

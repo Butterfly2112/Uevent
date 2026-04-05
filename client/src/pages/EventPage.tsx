@@ -364,7 +364,9 @@ const EventPage: React.FC = () => {
     try {
       const data = JSON.parse(localStorage.getItem('profile') || 'null');
       setCurrentUser(data);
-    } catch {}
+    } catch {
+      // ignore error
+    }
   }, []);
 
   if (loading) return <div style={{padding: 32}}>Loading event...</div>;

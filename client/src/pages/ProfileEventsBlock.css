@@ -1,0 +1,78 @@
+.profile-events-section {
+  max-width: 800px;
+  margin: 32px auto 24px auto;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px #e0e0e0;
+  padding: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+.profile-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 22px 32px 12px 32px;
+  background: linear-gradient(90deg, #f7f48b 0%, #f0f7ff 100%);
+  border-bottom: 1.5px solid #f3d25033;
+}
+
+.profile-events-header .icon {
+  font-size: 28px;
+  margin-right: 8px;
+}
+
+.profile-events-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 0 18px 0;
+  background: #fff;
+}
+@media (max-width: 700px) {
+  .profile-events-list {
+    max-width: 100%;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+
+.profile-events-empty {
+  color: #aaa;
+  font-size: 16px;
+  padding: 32px 0;
+  text-align: center;
+}
+
+.profile-events-error {
+  color: #d32f2f;
+  font-size: 16px;
+  padding: 32px 0;
+  text-align: center;
+}
+
+.profile-events-loading {
+  color: #888;
+  font-size: 16px;
+  padding: 32px 0;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .profile-events-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 12px 8px 12px;
+    font-size: 18px;
+  }
+  .profile-events-list {
+    padding: 12px 4px 8px 4px;
+  }
+}
