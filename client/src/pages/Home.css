@@ -1,3 +1,152 @@
+/* --- Adaptive styles for AllEventTypes page --- */
+@media (max-width: 900px) {
+  .all-events-filter-form {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px 8px 8px 8px !important;
+    align-items: stretch !important;
+  }
+  .all-events-card-list {
+    gap: 16px !important;
+    padding: 0 2vw !important;
+  }
+  .all-events-card {
+    min-width: 180px !important;
+    max-width: 240px !important;
+    padding: 10px !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
+  }
+  .all-events-card img {
+    height: 90px !important;
+    border-radius: 6px !important;
+    margin-bottom: 6px !important;
+  }
+}
+@media (max-width: 600px) {
+  .all-events-filter-form {
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 6px 2vw 6px 2vw !important;
+  }
+  .all-events-card-list {
+    gap: 8px !important;
+    padding: 0 1vw !important;
+  }
+  .all-events-card {
+    min-width: 120px !important;
+    max-width: 170px !important;
+    padding: 6px !important;
+    font-size: 13px !important;
+    border-radius: 7px !important;
+  }
+  .all-events-card img {
+    height: 60px !important;
+    border-radius: 4px !important;
+    margin-bottom: 4px !important;
+  }
+}
+/* --- Adaptive styles for Home page --- */
+@media (max-width: 900px) {
+  .home-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 6vw 8px 6vw;
+  }
+  .main-nav {
+    margin: 0 0 0 0;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 2vw;
+  }
+  .main-nav a {
+    font-size: 15px;
+    padding: 7px 10px;
+    border-radius: 10px;
+  }
+  .search-input {
+    min-width: 120px;
+    max-width: 180px;
+    font-size: 14px;
+    padding: 5px 8px;
+  }
+  .search-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .main-content {
+    padding: 10px 0 0 0;
+  }
+  .footer-row {
+    gap: 10px;
+    font-size: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 8px;
+  }
+  .home-footer {
+    font-size: 13px;
+    padding: 8px 0 4px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px 2vw 4px 2vw;
+  }
+  .main-nav {
+    gap: 6px;
+    padding: 0 1vw;
+    font-size: 13px;
+  }
+  .main-nav a {
+    font-size: 13px;
+    padding: 6px 6px;
+    border-radius: 8px;
+  }
+  .search-input {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+  .search-btn {
+    width: 22px;
+    height: 22px;
+  }
+  .main-content {
+    padding: 4px 0 0 0;
+  }
+  .home-cards-container {
+    gap: 4px !important;
+    min-height: 90px !important;
+    padding: 2px 0 2px 0 !important;
+  }
+  .home-cards-container > div > a {
+    min-width: 160px !important;
+    max-width: 200px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+  .home-cards-container img {
+    height: 60px !important;
+    border-radius: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  .footer-row {
+    font-size: 12px;
+    gap: 4px;
+    padding-left: 4px;
+  }
+  .home-footer {
+    font-size: 11px;
+    padding: 4px 0 2px 0;
+  }
+}
 @media (max-width: 900px) {
   .main-nav {
     flex-direction: column !important;
@@ -35,32 +184,7 @@
   bottom: auto !important;
   transform: translateY(-50%) !important;
 }
-@media (max-width: 900px) {
-  .home-arrow-btn.left {
-    left: 8px !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: -44px !important;
-    transform: none !important;
-  }
-  .home-arrow-btn.right {
-    right: 8px !important;
-    left: auto !important;
-    top: auto !important;
-    bottom: -44px !important;
-    transform: none !important;
-  }
-}
-@media (max-width: 600px) {
-  .home-arrow-btn.left {
-    left: 2vw !important;
-    bottom: -32px !important;
-  }
-  .home-arrow-btn.right {
-    right: 2vw !important;
-    bottom: -32px !important;
-  }
-}
+/* Стрелки всегда по бокам от событий, даже на мобильных */
 /* --- End adaptive positioning --- */
 /* --- Adaptive styles for event cards and arrows on Home page --- */
 @media (max-width: 1200px) {

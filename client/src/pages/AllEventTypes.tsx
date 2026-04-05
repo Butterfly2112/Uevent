@@ -175,21 +175,24 @@ const AllEventTypes: React.FC = () => {
         <HeaderUserBlock />
       </header>
       {/* Filter form below header */}
-      <div style={{
-        maxWidth: 1100,
-        margin: '32px auto 0 auto',
-        background: '#fffbe6',
-        borderRadius: 18,
-        boxShadow: '0 2px 12px #ffe066',
-        padding: '28px 32px 18px 32px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: 18,
-        position: 'relative',
-        top: 0,
-        zIndex: 2
-      }}>
+      <div
+        className="all-events-filter-form"
+        style={{
+          maxWidth: 1100,
+          margin: '32px auto 0 auto',
+          background: '#fffbe6',
+          borderRadius: 18,
+          boxShadow: '0 2px 12px #ffe066',
+          padding: '28px 32px 18px 32px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 18,
+          position: 'relative',
+          top: 0,
+          zIndex: 2
+        }}
+      >
         <form
           style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, width: '100%', justifyContent: 'center' }}
           onSubmit={e => {
@@ -406,10 +409,11 @@ const AllEventTypes: React.FC = () => {
         <h1 style={{ textAlign: 'center', margin: '32px 0 24px 0', fontSize: 36, fontWeight: 700, color: '#222' }}>All Events</h1>
         {loading && <div style={{ textAlign: 'center', margin: 32 }}>Loading...</div>}
         {error && <div style={{ color: 'red', textAlign: 'center', margin: 32 }}>{error}</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center' }}>
+        <div className="all-events-card-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center' }}>
           {events.map(event => (
             <div
               key={event.id}
+              className="all-events-card"
               style={{
                 minWidth: 260,
                 maxWidth: 320,
