@@ -16,6 +16,9 @@ import EventPage from './pages/EventPage';
 import CreateEventPage from './pages/CreateEventPage';
 import AdminPanel from './pages/AdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
+import PurchaseSuccess from './pages/PurchaseSuccess';
+import Participants from "./pages/Participants.tsx";
+import MyTickets from "./pages/Tickets.tsx";
 
 function App() {
   return (
@@ -35,6 +38,9 @@ function App() {
         <Route path="/company/:id" element={<CompanyProfileWrapper />} />
         <Route path="/event/:id" element={<EventPage />} />
         <Route path="/create-event" element={<CreateEventPage />} />
+          <Route path="/purchase-success/:ticketId" element={<PurchaseSuccess />} />
+          <Route path="/event/:id/participants" element={<Participants />} />
+          <Route path="/tickets" element={<MyTickets />} />
         <Route
           path="/admin"
           element={

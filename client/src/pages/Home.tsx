@@ -186,7 +186,7 @@ const Home: React.FC = () => {
         <nav className="main-nav">
           <a href="/all-event-types">Browse Events</a>
           <a href="/create-event">Create Event</a>
-          <a href="/profile">My tickets</a>
+          <a href="/tickets">My tickets</a>
           {isLoggedIn && company && company.id ? (
             <a href={`/company/${company.id}`}>View Company{company.name ? `: ${company.name}` : ''}</a>
           ) : isLoggedIn ? (
