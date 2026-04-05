@@ -95,6 +95,9 @@ export class Event {
   @Column({ type: 'enum', enum: ['everybody', 'attendees_only'] })
   visitor_visibility: 'everybody' | 'attendees_only';
 
+  @Column({ default: false })
+  reminder_sent: boolean;
+
   @OneToMany(() => Ticket, (ticket) => ticket.event)
   tickets: Ticket[];
 

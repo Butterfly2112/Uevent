@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Notification } from './entities/notifications.entity';
 import { NotificationsService } from './notifications.service';
@@ -8,6 +8,8 @@ import { User } from 'src/users/entities/user.entity';
 import { Event } from 'src/events/entities/event.entity';
 import { UsersModule } from '../users/users.module';
 import { EventsModule } from '../events/events.module';
+import { NotificationsScheduler } from './notifications.scheduler';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
   imports: [
@@ -15,9 +17,10 @@ import { EventsModule } from '../events/events.module';
     EmailModule,
     UsersModule,
     EventsModule,
+    forwardRef(() => TicketsModule),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService],
+  providers: [NotificationsService, NotificationsScheduler],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

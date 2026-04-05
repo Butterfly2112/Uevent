@@ -15,6 +15,7 @@ import {
   toEventResponse,
   toVisibleEvents,
 } from 'src/common/mappers/event.mapper';
+import { Between } from 'typeorm';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { GetEventsDto } from './dto/getEvents.dto';
 import { PromoCode } from './entities/promo-code.entity';
@@ -301,6 +302,21 @@ export class EventService {
       where: { id: eventId },
       select: { host: { id: true } },
       relations: { host: true },
+    });
+  }
+
+  async getEventsForReminder(start: Date, end: Date): Promise<Event[]> {
+    return this.eventRepository.find({
+      where: {
+        start_date: Between(start, end),
+        reminder_sent: false,
+      },
+    });
+  }
+
+  async markReminderSent(eventId: number) {
+    await this.eventRepository.update(eventId, {
+      reminder_sent: true,
     });
   }
 }

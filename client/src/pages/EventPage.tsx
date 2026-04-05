@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { getAvatarUrl } from '../components/getAvatarUrl';
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface Ticket {
   id: number;
@@ -74,13 +75,19 @@ interface Event {
   visitor_visibility?: 'everybody' | 'attendees_only';
 }
 
+interface CurrentUser {
+  id: number;
+  role?: string;
+  username?: string;
+  login?: string;
+  avatar_url?: string;
+}
 
 const EventPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -108,8 +115,6 @@ const EventPage: React.FC = () => {
   const [companyEvents, setCompanyEvents] = useState<Event[]>([]);
   const [companyEventsLoading, setCompanyEventsLoading] = useState(false);
   const [companyEventsError, setCompanyEventsError] = useState('');
-
-
 
   useEffect(() => {
     if (!event || !event.company || !event.company.id) return;
@@ -277,6 +282,19 @@ const EventPage: React.FC = () => {
     }
   };
 
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [buyError, setBuyError] = useState('');
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('profile') || 'null');
+      setCurrentUser(data);
+    } catch {}
+  }, []);
+
   if (loading) return <div style={{padding: 32}}>Loading event...</div>;
   if (error) return <div style={{padding: 32, color: 'red'}}>{error}</div>;
   if (!event) return <div style={{padding: 32}}>Event not found</div>;
@@ -386,6 +404,220 @@ const EventPage: React.FC = () => {
             <b>Price:</b> {event.price}₴<br />
             {event.ticket_limit && <><b>Tickets limit:</b> {event.ticket_limit}<br /></>}
           </div>
+          {/* BUY TICKET */}
+          <button
+              onClick={() => setShowBuyModal(true)}
+              style={{
+                background: '#ffe066',
+                border: '1px solid #ffd43b',
+                borderRadius: 12,
+                padding: '12px 26px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: 16,
+                boxShadow: '0 2px 8px #ffe06688',
+                transition: '0.2s',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = '#ffd43b')}
+              onMouseOut={(e) => (e.currentTarget.style.background = '#ffe066')}
+          >
+            Buy Ticket
+          </button>
+
+          {showBuyModal && (
+              <div
+                  onClick={() => setShowBuyModal(false)}
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'rgba(0,0,0,0.35)',
+                    zIndex: 3000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+              >
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      background: '#fffde7',
+                      borderRadius: 16,
+                      boxShadow: '0 2px 12px #ffe066',
+                      padding: 28,
+                      width: 420,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                      position: 'relative',
+                    }}
+                >
+                  <h2 style={{ marginBottom: 8, color: "black" }}>Confirm Purchase</h2>
+
+                  {/* USER INFO */}
+                  <div  style={{ background: '#fffbcc', padding: 12, borderRadius: 10,  color: '#191919'}}>
+                    <b>Login:</b> {currentUser?.login}
+                  </div>
+
+                  {/* EVENT INFO */}
+                  <div style={{ marginBottom: 10,  color: '#191919'}}>
+                    <b>Event:</b> {event.title} <br />
+                    <b>Price:</b> {event.price}₴
+                  </div>
+
+                  {/* ERROR */}
+                  {buyError && (
+                      <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            marginTop: 10,
+                          }}
+                      >
+                        <div
+                            style={{
+                              width: '70%',
+                              background: '#ffe3e3',
+                              color: '#c92a2a',
+                              padding: '10px 14px',
+                              borderRadius: 10,
+                              textAlign: 'center',
+                              fontSize: 14,
+                              boxShadow: '0 1px 6px rgba(255,0,0,0.15)',
+                            }}
+                        >
+                          {buyError}
+                        </div>
+                      </div>
+                  )}
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    marginTop: 16,
+                  }}>
+                    <button
+                        onClick={async () => {
+                          try {
+                            setBuyLoading(true);
+                            setBuyError('');
+
+                            const apiUrl = import.meta.env.VITE_API_URL || '';
+                            const token = localStorage.getItem('access_token');
+                            const user = JSON.parse(localStorage.getItem('profile') || 'null');
+
+                            const createRes = await fetch(`${apiUrl}/tickets`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                              },
+                              body: JSON.stringify({
+                                userId: user.id,
+                                eventId: event.id,
+                              }),
+                            });
+
+                            if (!createRes.ok) {
+                              const err = await createRes.json();
+
+                              if (err.message === 'Ticket already exists') {
+                                throw new Error('You already have a ticket for this event');
+                              }
+
+                              throw new Error(err.message || 'Error creating ticket');
+                            }
+
+                            const ticket = await createRes.json();
+
+                            const paymentRes = await fetch(`${apiUrl}/tickets/create-payment`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                              },
+                              body: JSON.stringify({
+                                ticketId: ticket.id,
+                              }),
+                            });
+
+                            if (!paymentRes.ok) throw new Error(await paymentRes.text());
+
+                            const payment = await paymentRes.json();
+
+                            const stripe = await loadStripe(
+                                import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+                            );
+
+                            if (!stripe) {
+                              throw new Error('Stripe not loaded');
+                            }
+
+                            const result = await stripe.confirmCardPayment(payment.clientSecret, {
+                              payment_method: {
+                                card: {
+                                  token: 'tok_visa',
+                                },
+                              },
+                            });
+
+                            if (result.error) {
+                              throw new Error(result.error.message);
+                            }
+
+                            const payRes = await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
+                              method: 'POST',
+                              headers: {
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                              },
+                            });
+
+                            if (!payRes.ok) throw new Error(await payRes.text());
+
+                            alert('Ticket purchased!');
+                            setShowBuyModal(false);
+
+                          } catch (e) {
+                            setBuyError(e instanceof Error ? e.message : 'Error');
+                          } finally {
+                            setBuyLoading(false);
+                          }
+                        }}
+                        style={{
+                          width: '50%',
+                          background: '#ffe066',
+                          border: '1px solid #ffd43b',
+                          borderRadius: 10,
+                          padding: '10px 0',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 6px #ffe066',
+                        }}
+                    >
+                      {buyLoading ? 'Processing...' : 'Pay'}
+                    </button>
+
+                    <button
+                        onClick={() => setShowBuyModal(false)}
+                        style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 16,
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 22,
+                          cursor: 'pointer',
+                          color: '#888',
+                        }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+          )}
           {/* Buy ticket button removed as requested */}
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
             {event.company && event.company.id !== null ? (

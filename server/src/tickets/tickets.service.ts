@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -31,6 +32,7 @@ export class TicketsService {
     @InjectRepository(PromoCode)
     private promoRepo: Repository<PromoCode>,
 
+    @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
 
     @Inject('PAYMENT_PROVIDER')
@@ -129,8 +131,6 @@ export class TicketsService {
       throw new BadRequestException('Payment not initialized');
     }
 
-    await this.paymentProvider.confirmPayment(ticket.payment_intent_id);
-
     ticket.status = TicketStatus.PAID;
 
     const saved = await this.ticketRepo.save(ticket);
@@ -196,5 +196,23 @@ export class TicketsService {
     });
 
     return saved;
+  }
+
+  async getEventParticipants(eventId: number): Promise<User[]> {
+    const tickets = await this.ticketRepo.find({
+      where: {
+        event: { id: eventId },
+        status: TicketStatus.PAID,
+      },
+      relations: ['user'],
+    });
+
+    const uniqueUsers = new Map<number, User>();
+
+    for (const ticket of tickets) {
+      uniqueUsers.set(ticket.user.id, ticket.user);
+    }
+
+    return Array.from(uniqueUsers.values());
   }
 }
