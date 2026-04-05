@@ -6,12 +6,14 @@ import { AuthModule } from 'src/auth/auth.module';
 import { UsersController } from './users.controller';
 import { UploadModule } from 'src/upload/upload.module';
 import { JwtModule } from '@nestjs/jwt';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
     forwardRef(() => AuthModule),
     JwtModule.register({}),
     UploadModule,
+    EmailModule,
     TypeOrmModule.forFeature([User]),
   ],
   providers: [UsersService],
