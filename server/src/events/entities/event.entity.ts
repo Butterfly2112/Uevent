@@ -5,6 +5,8 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -106,4 +108,12 @@ export class Event {
 
   @OneToMany(() => PromoCode, (promo) => promo.event)
   promo_codes: PromoCode[];
+
+  @ManyToMany(() => User, (user) => user.following_events)
+  @JoinTable({
+    name: 'event_subscriptions',
+    joinColumn: { name: 'event_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
+  })
+  event_followers: User[];
 }

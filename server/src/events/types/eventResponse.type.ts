@@ -69,6 +69,12 @@ export class EventResponse {
   })
   redirect_url?: string;
 
+  @ApiProperty({
+    description: 'Current user following event or not',
+    default: false,
+  })
+  isFollowing: boolean;
+
   @ApiProperty({ description: 'Date when the event starts', required: false })
   start_date?: Date;
 

@@ -16,7 +16,7 @@ import { TicketsModule } from '../tickets/tickets.module';
     TypeOrmModule.forFeature([Notification, User, Event]),
     EmailModule,
     UsersModule,
-    EventsModule,
+    forwardRef(() => EventsModule),
     forwardRef(() => TicketsModule),
   ],
   controllers: [NotificationsController],

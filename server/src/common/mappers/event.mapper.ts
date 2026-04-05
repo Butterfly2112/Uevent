@@ -6,6 +6,7 @@ import { buildCommentTree } from './comment.mapper';
 export function toEventResponse(
   event: Event,
   permissions: { owner: boolean; admin: boolean; isAttendee: boolean },
+  isFollowing: boolean = false,
 ): EventResponse {
   const { owner, admin, isAttendee } = permissions;
   const isPrivileged = owner || admin;
@@ -23,6 +24,7 @@ export function toEventResponse(
     ticket_limit: event.ticket_limit,
     address: event.address,
     poster_url: event.poster_url,
+    isFollowing: isFollowing,
     start_date: event.start_date,
     end_date: event.end_date,
     status: event.status,
@@ -90,6 +92,7 @@ export function toVisibleEvents(
   events: Event[],
   permissions: { owner: boolean; admin: boolean },
   currentUserId?: number | null,
+  isFollowing: boolean = false,
 ): EventResponse[] {
   const { owner, admin } = permissions;
   const now = new Date();
@@ -105,7 +108,7 @@ export function toVisibleEvents(
       const isAttendee =
         !!currentUserId &&
         (event.tickets ?? []).some((t) => t.user?.id === currentUserId);
-      return toEventResponse(event, { owner, admin, isAttendee });
+      return toEventResponse(event, { owner, admin, isAttendee }, isFollowing);
     });
 }
 
@@ -113,6 +116,7 @@ export function checkVisibilityOfEvent(
   event: Event,
   permissions: { owner: boolean; admin: boolean },
   currentUserId?: number | null,
+  isFollowing: boolean = false,
 ): EventResponse | null {
   const { owner, admin } = permissions;
   const now = new Date();
@@ -127,5 +131,5 @@ export function checkVisibilityOfEvent(
   const isAttendee =
     !!currentUserId &&
     (event.tickets ?? []).some((t) => t.user?.id === currentUserId);
-  return toEventResponse(event, { owner, admin, isAttendee });
+  return toEventResponse(event, { owner, admin, isAttendee }, isFollowing);
 }

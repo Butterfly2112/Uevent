@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -20,6 +21,7 @@ import { UpdateEventDto } from './dto/updateEvent.dto';
 import { GetEventsDto } from './dto/getEvents.dto';
 import { PromoCode } from './entities/promo-code.entity';
 import { PromoCodeDto } from './dto/promoCodeDto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class EventService {
@@ -29,6 +31,7 @@ export class EventService {
     private uploadService: UploadService,
     @InjectRepository(PromoCode)
     private promoCodeRepository: Repository<PromoCode>,
+    private notificationService: NotificationsService,
   ) {}
 
   async createEvent(
@@ -147,6 +150,17 @@ export class EventService {
       throw new NotFoundException('Event not found');
     }
 
+    let isFollowing = false;
+
+    if (userId) {
+      isFollowing = await this.eventRepository
+        .createQueryBuilder('event')
+        .innerJoin('event.event_followers', 'follower')
+        .where('event.id = :eventId', { eventId })
+        .andWhere('follower.id = :userId', { userId })
+        .getExists();
+    }
+
     const visible_event = checkVisibilityOfEvent(
       event,
       {
@@ -154,6 +168,7 @@ export class EventService {
         admin: userRole === 'admin',
       },
       userId,
+      isFollowing,
     );
 
     if (!visible_event) {
@@ -318,5 +333,64 @@ export class EventService {
     await this.eventRepository.update(eventId, {
       reminder_sent: true,
     });
+  }
+
+  async followTheEvent(eventId: number, userId: number): Promise<void> {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+      select: { id: true, host: { id: true } },
+      relations: { host: true },
+    });
+
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.host.id === userId) {
+      throw new ConflictException(
+        'You cannot follow your own event. Why? Because I said so',
+      );
+    }
+
+    const followers = await this.eventRepository
+      .createQueryBuilder()
+      .relation(Event, 'event_followers')
+      .of(eventId)
+      .loadMany();
+
+    const alreasyFollowing = followers.some((u) => u.id === userId);
+
+    if (alreasyFollowing) {
+      throw new ConflictException('You are already following this event.');
+    }
+
+    await this.eventRepository
+      .createQueryBuilder()
+      .relation(Event, 'event_followers')
+      .of(eventId)
+      .add(userId);
+  }
+
+  async unfollowTheEvent(eventId: number, userId: number) {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+      select: { id: true, host: { id: true } },
+      relations: { host: true },
+    });
+
+    if (!event) throw new NotFoundException('Event not found');
+    const followers = await this.eventRepository
+      .createQueryBuilder()
+      .relation(Event, 'event_followers')
+      .of(eventId)
+      .loadMany();
+
+    const alreasyFollowing = followers.some((u) => u.id === userId);
+    if (!alreasyFollowing) {
+      throw new ConflictException('You are not following this event already.');
+    }
+
+    await this.eventRepository
+      .createQueryBuilder()
+      .relation(Event, 'event_followers')
+      .of(eventId)
+      .remove(userId);
   }
 }

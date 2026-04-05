@@ -22,6 +22,7 @@ import { UploadService } from 'src/upload/upload.service';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
   ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -69,6 +70,61 @@ export class EventController {
     }
 
     return this.eventService.searchEvents(dto, user?.role);
+  }
+
+  @ApiOperation({
+    summary: 'Follow the event',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Event id',
+  })
+  @ApiNotFoundResponse({
+    description: 'Event not found',
+  })
+  @ApiConflictResponse({
+    description:
+      'User cannot follow their own events. Or user already following the event',
+  })
+  @ApiOkResponse({
+    description: 'Followed the event successfully',
+  })
+  @Post(':id/follow')
+  @UseGuards(AuthGuard)
+  async followEvent(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.eventService.followTheEvent(param, req.user.id);
+    return {
+      message: 'Followed the event successfully',
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Unfollow the event',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Event id',
+  })
+  @ApiNotFoundResponse({
+    description: 'Event not found',
+  })
+  @ApiConflictResponse({
+    description: 'User already not following the event',
+  })
+  @ApiOkResponse({
+    description: 'Unfollowed the event successfully',
+  })
+  @Post(':id/unfollow')
+  @UseGuards(AuthGuard)
+  async unfollowEvent(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.eventService.unfollowTheEvent(param, req.user.id);
+    return {
+      message: 'Unfollowed the event successfully',
+    };
   }
 
   @ApiOperation({

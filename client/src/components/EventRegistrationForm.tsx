@@ -353,7 +353,6 @@ export const EventRegistrationForm: React.FC<{
         </div>
       </div>
 
-      {/* Карта для выбора адреса ближе к правому краю под тикетс */}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', margin: '24px 0' }}>
         <div style={{ width: 400, height: 220, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 8px #ffe06655', position: 'relative' }}>
           <iframe

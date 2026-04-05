@@ -83,11 +83,83 @@ interface CurrentUser {
   avatar_url?: string;
 }
 
+
 const EventPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followError, setFollowError] = useState('');
+
+  useEffect(() => {
+    if (!event) return;
+    let userObj: { id: number; role?: string } | null = null;
+    try {
+      const userStr = localStorage.getItem('profile');
+      if (userStr) userObj = JSON.parse(userStr);
+    } catch {
+      // ignore error
+    }
+    if (!userObj) return;
+    const checkFollowing = async () => {
+      setFollowError('');
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+        const res = await fetch(`${apiUrl}/events/${event.id}`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (typeof data.isFollowing === 'boolean') {
+          setIsFollowing(data.isFollowing);
+        } else if (Array.isArray(data.followers)) {
+          setIsFollowing(data.followers.some((u: { id: number }) => u.id === userObj!.id));
+        } else {
+          setIsFollowing(false);
+        }
+      } catch (err) {
+        setFollowError(err instanceof Error ? err.message : 'Error checking follow status');
+      }
+    };
+    checkFollowing();
+  }, [event]);
+
+  const handleFollowToggle = async () => {
+    if (!event) return;
+    setFollowLoading(true);
+    setFollowError('');
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('access_token');
+      if (!token) throw new Error('Требуется авторизация');
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      const url = `${apiUrl}/events/${event.id}/${isFollowing ? 'unfollow' : 'follow'}`;
+      const res = await fetch(url, { method: 'POST', headers });
+      if (!res.ok) {
+        let errorMsg = 'You cannot follow your own event';
+        try {
+          const data = await res.json();
+          if (data && data.message) {
+            // Показываем только первую часть до точки
+            errorMsg = String(data.message).split('.')[0] + '.';
+          }
+        } catch {
+          const raw = await res.text();
+          errorMsg = String(raw).split('.')[0] + '.';
+        }
+        throw new Error(errorMsg);
+      }
+      setIsFollowing(!isFollowing);
+    } catch (e) {
+      setFollowError(e instanceof Error ? e.message : 'Error toggling follow');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -404,6 +476,7 @@ const EventPage: React.FC = () => {
             <b>Price:</b> {event.price}₴<br />
             {event.ticket_limit && <><b>Tickets limit:</b> {event.ticket_limit}<br /></>}
           </div>
+
           {/* BUY TICKET */}
           <button
               onClick={() => setShowBuyModal(true)}
@@ -620,6 +693,32 @@ const EventPage: React.FC = () => {
           )}
           {/* Buy ticket button removed as requested */}
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+
+          {(!isOwner) && (
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0 12px 0' }}>
+              <button
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+                style={{
+                  background: isFollowing ? '#fffbe6' : '#ffe066',
+                  border: '1px solid #bfa800',
+                  color: isFollowing ? '#bfa800' : '#222',
+                  borderRadius: 8,
+                  padding: '10px 32px',
+                  fontWeight: 600,
+                  cursor: followLoading ? 'not-allowed' : 'pointer',
+                  fontSize: 18,
+                  minWidth: 180
+                }}
+              >
+                {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+              </button>
+              {followError && <span style={{ color: 'red', marginLeft: 16, alignSelf: 'center' }}>{followError}</span>}
+            </div>
+          )}
+
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+
             {event.company && event.company.id !== null ? (
               (() => {
                 let companyImgSrc = '';
@@ -647,7 +746,7 @@ const EventPage: React.FC = () => {
               <a href={event.redirect_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7ae2', fontWeight: 600 }}>Event external page</a>
             </div>
           )}
-
+          </div>
 
         </div>
         {/* Styled Add comment form right under event card */}

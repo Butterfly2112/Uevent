@@ -27,6 +27,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { UserDetailedInfo } from './types/userDetailedInfo.type';
 import { UpdateUserDto, UpdateUserDtoD } from './dto/updateUser.dto';
@@ -44,6 +45,7 @@ import {
   UserForAdminResponse,
   UsersForAdminResponse,
 } from './types/userForAdmin.type';
+import { EventResponse } from 'src/events/types/eventResponse.type';
 
 @Controller('users')
 export class UsersController {
@@ -153,6 +155,32 @@ export class UsersController {
   @UseGuards(AuthGuard)
   async searchUsers(@Req() req: RequestWithUser, @Query() dto: SearchUserDto) {
     return await this.usersService.searchUsers(req.user.role, dto);
+  }
+
+  @ApiOperation({
+    summary: 'Get all events user following',
+  })
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({
+    description: 'User not found',
+  })
+  @ApiOkResponse({
+    description: 'Events retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: { $ref: getSchemaPath(EventResponse) },
+        },
+        total: { type: 'number', example: 1 },
+      },
+    },
+  })
+  @Get('following-events')
+  @UseGuards(AuthGuard)
+  async getUserFollowingEvents(@Req() req: RequestWithUser) {
+    return await this.usersService.getUserFollowingEvents(req.user.id);
   }
 
   @ApiOperation({

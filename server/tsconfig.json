@@ -17,7 +17,7 @@
     "baseUrl": "./",
     "ignoreDeprecations": "6.0",
     "rootDir": "./src",
-    "incremental": true,
+    //"incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,

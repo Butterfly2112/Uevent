@@ -228,6 +228,7 @@ const Home: React.FC = () => {
             <button
               aria-label="Scroll left"
               onClick={() => canScrollLeft && scrollCards('left')}
+              className="home-arrow-btn left"
               style={{
                 position: 'absolute',
                 left: -100,
@@ -250,8 +251,35 @@ const Home: React.FC = () => {
             >
               <img src={arrowLeft} alt="Left" style={{ width: 32, height: 32, pointerEvents: 'none', filter: canScrollLeft ? 'none' : 'grayscale(1) brightness(2.2)' }} />
             </button>
+            <button
+              aria-label="Scroll right"
+              onClick={() => canScrollRight && scrollCards('right')}
+              className="home-arrow-btn right"
+              style={{
+                position: 'absolute',
+                right: -100,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                background: 'none',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                padding: 0,
+                fontSize: 0,
+                cursor: canScrollRight ? 'pointer' : 'not-allowed',
+                boxShadow: 'none',
+                display: events.length > 0 ? 'block' : 'none',
+                filter: canScrollRight ? 'none' : 'grayscale(1) brightness(1.7)',
+              }}
+              title={canScrollRight ? '' : 'No more events right'}
+            >
+              <img src={arrowRight} alt="Right" style={{ width: 32, height: 32, pointerEvents: 'none', filter: canScrollRight ? 'none' : 'grayscale(1) brightness(2.2)' }} />
+            </button>
             <div
               ref={cardsContainerRef}
+              className="home-cards-container"
               style={{
                 overflow: 'hidden',
                 display: 'flex',
@@ -332,31 +360,6 @@ const Home: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button
-              aria-label="Scroll right"
-              onClick={() => canScrollRight && scrollCards('right')}
-              style={{
-                position: 'absolute',
-                right: -100,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 2,
-                background: 'none',
-                border: 'none',
-                borderRadius: '50%',
-                width: 40,
-                height: 40,
-                padding: 0,
-                fontSize: 0,
-                cursor: canScrollRight ? 'pointer' : 'not-allowed',
-                boxShadow: 'none',
-                display: events.length > 0 ? 'block' : 'none',
-                filter: canScrollRight ? 'none' : 'grayscale(1) brightness(1.7)',
-              }}
-              title={canScrollRight ? '' : 'No more events right'}
-            >
-              <img src={arrowRight} alt="Right" style={{ width: 32, height: 32, pointerEvents: 'none', filter: canScrollRight ? 'none' : 'grayscale(1) brightness(2.2)' }} />
-            </button>
           </div>
         )}
       </main>
