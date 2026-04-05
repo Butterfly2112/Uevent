@@ -34,6 +34,7 @@ interface Event {
 const MyTickets: React.FC = () => {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(false);
+    const defaultImage = '/default-event.png';
 
     useEffect(() => {
         fetchTickets();
@@ -199,12 +200,13 @@ const MyTickets: React.FC = () => {
                     }}>
                         {tickets.map(ticket => {
 
-                            let imgSrc = '/default-event.png';
-                            if (ticket.event.poster_url) {
+                            let imgSrc = defaultImage;
+                            if (ticket.event.poster_url && ticket.event.poster_url.trim() !== '') {
                                 imgSrc = ticket.event.poster_url;
+                                console.log(ticket.event.poster_url);
                                 if (imgSrc.startsWith('/uploads')) {
                                     const apiUrl = import.meta.env.VITE_API_URL || '';
-                                    const baseUrl = apiUrl.replace(/\/api$/, '');
+                                    const baseUrl = apiUrl.replace(/\/api\/?$/, '');
                                     imgSrc = baseUrl + imgSrc;
                                 }
                             }
