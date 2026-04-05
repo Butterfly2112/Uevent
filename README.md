@@ -198,6 +198,12 @@ uevent/
 
 ---
 ## Screenshots
+
+![Main Page](Screenshots/MainPage.png)
+![Browse Events](Screenshots/browse_events_page.png)
+![Event Details Page](Screenshots/event_details_page.png)
+![Ticket](Screenshots/ticket.jpg)
+
 ---
 
 ## API Documentation
