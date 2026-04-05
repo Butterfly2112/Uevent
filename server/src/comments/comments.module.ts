@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
 import { CommentsService } from './comments.service';
 import { CommentController } from './comments.controller';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CommentController } from './comments.controller';
     JwtModule.register({}),
     EventsModule,
     UsersModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([Comment]),
   ],
   providers: [CommentsService],

@@ -10,7 +10,7 @@ import { EventResponse } from './types/eventResponse.type';
 import { CompanyService } from 'src/companies/companies.service';
 import { CreateEventDto } from './dto/createEvent.dto';
 import { UploadService } from 'src/upload/upload.service';
-import { Event } from './entities/event.entity';
+import { Event, EventStatus } from './entities/event.entity';
 import {
   checkVisibilityOfEvent,
   toEventResponse,
@@ -22,6 +22,8 @@ import { GetEventsDto } from './dto/getEvents.dto';
 import { PromoCode } from './entities/promo-code.entity';
 import { PromoCodeDto } from './dto/promoCodeDto';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/types/notifications-type.enum';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class EventService {
@@ -32,6 +34,7 @@ export class EventService {
     @InjectRepository(PromoCode)
     private promoCodeRepository: Repository<PromoCode>,
     private notificationService: NotificationsService,
+    private usersService: UsersService,
   ) {}
 
   async createEvent(
@@ -62,6 +65,22 @@ export class EventService {
       host: company.owner,
       ...dto,
     });
+
+    const followers = await this.usersService.getRawFollowersForNotification(
+      company.owner.id,
+    );
+
+    if (followers.length > 0) {
+      await Promise.all(
+        followers.map((follower) =>
+          this.notificationService.createNotification({
+            user: follower,
+            type: NotificationType.NEW_EVENT,
+            event: event,
+          }),
+        ),
+      );
+    }
 
     const promoCodes = (dto.promoCodes ?? []).map((p: PromoCodeDto) => ({
       code: p.code,
@@ -120,6 +139,43 @@ export class EventService {
     Object.assign(event, updateData);
 
     const updatedEvent = await this.eventRepository.save(event);
+
+    if (updatedEvent.status === EventStatus.CANCELED) {
+      const eventWithFollowers = await this.eventRepository.findOne({
+        where: { id: eventId },
+        relations: { event_followers: true, tickets: { user: true } },
+      });
+
+      if (eventWithFollowers?.event_followers?.length) {
+        await Promise.all(
+          eventWithFollowers.event_followers.map((follower) =>
+            this.notificationService.createNotification({
+              user: follower,
+              type: NotificationType.EVENT_CANCELED,
+              event: eventWithFollowers,
+            }),
+          ),
+        );
+      }
+    } else {
+      const eventWithFollowers = await this.eventRepository.findOne({
+        where: { id: eventId },
+        relations: { event_followers: true },
+      });
+
+      if (eventWithFollowers?.event_followers?.length) {
+        await Promise.all(
+          eventWithFollowers.event_followers.map((follower) =>
+            this.notificationService.createNotification({
+              user: follower,
+              type: NotificationType.EVENT_NEWS,
+              event: updatedEvent,
+            }),
+          ),
+        );
+      }
+    }
+
     return toEventResponse(updatedEvent, {
       owner: true,
       admin: event.company.owner.role == 'admin',
@@ -200,6 +256,22 @@ export class EventService {
       this.uploadService.deleteByUrl(event.poster_url);
     }
 
+    const eventWithFollowers = await this.eventRepository.findOne({
+      where: { id: eventId },
+      relations: { event_followers: true, tickets: { user: true } },
+    });
+
+    if (eventWithFollowers?.event_followers?.length) {
+      await Promise.all(
+        eventWithFollowers.event_followers.map((follower) =>
+          this.notificationService.createNotification({
+            user: follower,
+            type: NotificationType.EVENT_CANCELED,
+            event: eventWithFollowers,
+          }),
+        ),
+      );
+    }
     //Create function that will cancel all the tickets
 
     await this.eventRepository.delete(eventId);

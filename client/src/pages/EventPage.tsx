@@ -7,6 +7,7 @@ import { getAvatarUrl } from '../components/getAvatarUrl';
 import { EventRegistrationForm } from '../components/EventRegistrationForm';
 import type { EventFormData } from '../components/EventRegistrationForm';
 import { loadStripe } from '@stripe/stripe-js';
+import { useNavigate } from 'react-router-dom';
 
 interface Ticket {
   id: number;
@@ -92,6 +93,7 @@ const EventPage: React.FC = () => {
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followError, setFollowError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!event) return;
@@ -360,6 +362,16 @@ const EventPage: React.FC = () => {
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
+  const [promoCode, setPromoCode] = useState('');
+  const [discount, setDiscount] = useState<number | null>(null);
+  const [finalPrice, setFinalPrice] = useState(0);
+
+  useEffect(() => {
+    if (event) {
+      setFinalPrice(event.price);
+    }
+  }, [event]);
+
   useEffect(() => {
     try {
       const data = JSON.parse(localStorage.getItem('profile') || 'null');
@@ -537,9 +549,114 @@ const EventPage: React.FC = () => {
                   </div>
 
                   {/* EVENT INFO */}
-                  <div style={{ marginBottom: 10,  color: '#191919'}}>
+                  <div style={{ marginBottom: 10, color: '#191919', textAlign: 'center' }}>
                     <b>Event:</b> {event.title} <br />
-                    <b>Price:</b> {event.price}₴
+
+                    {discount ? (
+                        <div style={{ marginTop: 6 }}>
+                          <span style={{
+                            textDecoration: 'line-through',
+                            color: '#888',
+                            marginRight: 8
+                          }}>
+                            {event.price}₴
+                          </span>
+
+                          <span style={{
+                            fontWeight: 700,
+                            fontSize: 18,
+                            color: '#222'
+                          }}>
+                            {finalPrice}₴
+                          </span>
+                        </div>
+                    ) : (
+                        <div style={{ marginTop: 6 }}>
+                          <b>Price:</b> {event.price}₴
+                        </div>
+                    )}
+                  </div>
+
+                  {/* PROMO CODE */}
+                  <div  style={{
+                    background: '#fffbe6',
+                    borderRadius: 12,
+                    padding: 14,
+                    boxShadow: '0 1px 6px #ffe06655',
+                    marginBottom: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}>
+                    <input
+                        type="text"
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: 10,
+                          border: '1px solid #e0e0c0',
+                          width: '80%',
+                          textAlign: 'center',
+                          outline: 'none',
+                          fontSize: 14,
+                          background: '#fff',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+                          color: '#ffe066',
+                        }}
+                    />
+
+                    <button
+                        onClick={async () => {
+                          try {
+                            const apiUrl = import.meta.env.VITE_API_URL || '';
+
+                            const res = await fetch(`${apiUrl}/tickets/validate-promo`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                eventId: event.id,
+                                code: promoCode,
+                              }),
+                            });
+
+                            if (!res.ok) {
+                              const err = await res.json();
+                              throw new Error(err.message);
+                            }
+
+                            const data = await res.json();
+
+                            setDiscount(data.discount_percentage);
+
+                            const newPrice =
+                                event.price -
+                                (event.price * data.discount_percentage) / 100;
+
+                            setFinalPrice(newPrice);
+                            setBuyError('');
+
+                          } catch (e) {
+                            setBuyError(e instanceof Error ? e.message : 'Invalid promo');
+                          }
+                        }}
+                        style={{
+                          background: '#ffe066',
+                          border: '1px solid #ffd43b',
+                          borderRadius: 10,
+                          padding: '8px 20px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 6px #ffe06688',
+                          transition: '0.2s',
+                        }}
+                    >
+                      Apply
+                    </button>
                   </div>
 
                   {/* ERROR */}
@@ -592,6 +709,7 @@ const EventPage: React.FC = () => {
                               body: JSON.stringify({
                                 userId: user.id,
                                 eventId: event.id,
+                                promoCode: promoCode || undefined,
                               }),
                             });
 
@@ -622,6 +740,18 @@ const EventPage: React.FC = () => {
 
                             const payment = await paymentRes.json();
 
+                            if (payment.free) {
+                              await fetch(`${apiUrl}/tickets/${ticket.id}/pay`, {
+                                method: 'POST',
+                                headers: {
+                                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                },
+                              });
+
+                              navigate(`/purchase-success/${ticket.id}`);
+                              return;
+                            }
+
                             const stripe = await loadStripe(
                                 import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
                             );
@@ -651,7 +781,13 @@ const EventPage: React.FC = () => {
 
                             if (!payRes.ok) throw new Error(await payRes.text());
 
-                            alert('Ticket purchased!');
+                            const payData = await payRes.json();
+
+                            if (payData.redirect_url) {
+                              window.location.href = payData.redirect_url;
+                            } else {
+                              navigate(`/purchase-success/${ticket.id}`);
+                            }
                             setShowBuyModal(false);
 
                           } catch (e) {
@@ -693,61 +829,128 @@ const EventPage: React.FC = () => {
                 </div>
               </div>
           )}
-          {/* Buy ticket button removed as requested */}
-          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ marginTop: 18 }}>
 
-          {(!isOwner) && (
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0 12px 0' }}>
-              <button
-                onClick={handleFollowToggle}
-                disabled={followLoading}
-                style={{
-                  background: isFollowing ? '#fffbe6' : '#ffe066',
-                  border: '1px solid #bfa800',
-                  color: isFollowing ? '#bfa800' : '#222',
-                  borderRadius: 8,
-                  padding: '10px 32px',
-                  fontWeight: 600,
-                  cursor: followLoading ? 'not-allowed' : 'pointer',
-                  fontSize: 18,
-                  minWidth: 180
-                }}
-              >
-                {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
-              </button>
-              {followError && <span style={{ color: 'red', marginLeft: 16, alignSelf: 'center' }}>{followError}</span>}
-            </div>
-          )}
+            {/* FOLLOW + PARTICIPANTS */}
+            {!isOwner && (
+                <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 16,
+                    }}
+                >
+                  {/* LEFT: Follow */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                        onClick={handleFollowToggle}
+                        disabled={followLoading}
+                        style={{
+                          background: isFollowing ? '#fffbe6' : '#ffe066',
+                          border: '1px solid #fffbe6',
+                          color: isFollowing ? '#bfa800' : '#222',
+                          borderRadius: 8,
+                          padding: '10px 28px',
+                          fontWeight: 600,
+                          cursor: followLoading ? 'not-allowed' : 'pointer',
+                          fontSize: 16,
+                          minWidth: 150,
+                          transition: '0.2s',
+                        }}
+                    >
+                      {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+                    </button>
 
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {followError && (
+                        <span style={{ color: 'red', fontSize: 14 }}>{followError}</span>
+                    )}
+                  </div>
 
-            {event.company && event.company.id !== null ? (
-              (() => {
-                let companyImgSrc = '';
-                if (event.company.picture_url && event.company.picture_url !== 'default') {
-                  companyImgSrc = event.company.picture_url;
-                  if (companyImgSrc.startsWith('/uploads')) {
-                    const apiUrl = import.meta.env.VITE_API_URL || '';
-                    const baseUrl = apiUrl.replace(/\/api$/, '');
-                    companyImgSrc = baseUrl + companyImgSrc;
-                  }
-                } else {
-                  companyImgSrc = '/default-company-avatar.png';
-                }
-                return <>
-                  <img src={companyImgSrc} alt={event.company.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-                  <span style={{ fontWeight: 600 }}>Organized by: <a href={`/company/${event.company.id}`}>{event.company.name}</a></span>
-                </>;
-              })()
-            ) : (
-              <span style={{ fontWeight: 600, color: '#ff4d4f' }}>This company was deleted</span>
+                  {/* RIGHT: Participants */}
+                  <button
+                      onClick={() => navigate(`/event/${event.id}/participants`)}
+                      style={{
+                        background: '#ffe066',
+                        border: '1px solid #ffe066',
+                        color: "black",
+                        borderRadius: 8,
+                        padding: '10px 24px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        boxShadow: '0 1px 6px #ffe06655',
+                        transition: '0.2s',
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.background = '#bfa800')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = '#ffe066')}
+                  >
+                    Participants
+                  </button>
+                </div>
             )}
-          </div>
-          {event.redirect_url && (
-            <div style={{ marginTop: 18 }}>
-              <a href={event.redirect_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7ae2', fontWeight: 600 }}>Event external page</a>
+
+            {/* COMPANY */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {event.company && event.company.id !== null ? (
+                  (() => {
+                    let companyImgSrc = '';
+                    if (event.company.picture_url && event.company.picture_url !== 'default') {
+                      companyImgSrc = event.company.picture_url;
+                      if (companyImgSrc.startsWith('/uploads')) {
+                        const apiUrl = import.meta.env.VITE_API_URL || '';
+                        const baseUrl = apiUrl.replace(/\/api$/, '');
+                        companyImgSrc = baseUrl + companyImgSrc;
+                      }
+                    } else {
+                      companyImgSrc = '/default-company-avatar.png';
+                    }
+
+                    return (
+                        <>
+                          <img
+                              src={companyImgSrc}
+                              alt={event.company.name}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                background: '#eee',
+                              }}
+                          />
+                          <span style={{ fontWeight: 600 }}>
+                            Organized by:{' '}
+                            <a
+                                href={`/company/${event.company.id}`}
+                                style={{ color: '#ccaa00' }}
+                            >
+                              {event.company.name}
+                            </a>
+                          </span>
+                        </>
+                    );
+                  })()
+              ) : (
+                  <span style={{ fontWeight: 600, color: '#ff4d4f' }}>
+                    This company was deleted
+                  </span>
+              )}
             </div>
-          )}
+
+            {/* REDIRECT LINK */}
+            {event.redirect_url && (
+                <div style={{ marginTop: 12 }}>
+                  <a
+                      href={event.redirect_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#ccaa00', fontWeight: 600 }}
+                  >
+                    Event external page
+                  </a>
+                </div>
+            )}
           </div>
 
         </div>

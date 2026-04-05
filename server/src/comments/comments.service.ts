@@ -14,6 +14,8 @@ import { Comment } from './entities/comment.entity';
 import { mapCommentToResponse } from 'src/common/mappers/comment.mapper';
 import { checkVisibilityOfEvent } from 'src/common/mappers/event.mapper';
 import { UpdateCommentDto } from './dto/updateComment.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/types/notifications-type.enum';
 
 @Injectable()
 export class CommentsService {
@@ -21,6 +23,7 @@ export class CommentsService {
     @InjectRepository(Comment) private commentRepository: Repository<Comment>,
     private eventService: EventService,
     private usersService: UsersService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createComment(
@@ -52,8 +55,8 @@ export class CommentsService {
     if (dto.parentId) {
       parentComment = await this.commentRepository.findOne({
         where: { id: dto.parentId },
-        select: { event: { id: true } },
-        relations: { parent: { parent: true }, event: true },
+        select: { event: { id: true }, author: { id: true } },
+        relations: { parent: { parent: true }, event: true, author: true },
       });
 
       if (!parentComment)
@@ -75,6 +78,29 @@ export class CommentsService {
       parent: parentComment,
       content: dto.content,
     });
+
+    if (!parentComment) {
+      if (userId !== event.host.id) {
+        const owner = await this.usersService.getUserById(event.host.id);
+
+        await this.notificationsService.createNotification({
+          user: owner,
+          type: NotificationType.EVENT_COMMENT,
+          event: event,
+        });
+      }
+    } else {
+      if (parentComment.author.id !== userId) {
+        const author = await this.usersService.getUserById(
+          parentComment.author.id,
+        );
+        await this.notificationsService.createNotification({
+          user: author,
+          type: NotificationType.COMMENT_REPLY,
+          event: event,
+        });
+      }
+    }
 
     return mapCommentToResponse(comment, event.id);
   }

@@ -23,6 +23,8 @@ import { UpdateCompanyDto } from './dto/updateCompany.dto';
 import { EventStatus } from 'src/events/entities/event.entity';
 import { searchCompanyDto } from './dto/searchCompany.dto';
 import { CompaniesForAdminResponse } from './types/companyForAdminResponse.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/types/notifications-type.enum';
 
 @Injectable()
 export class CompanyService {
@@ -33,6 +35,7 @@ export class CompanyService {
     private companyRepository: Repository<Company>,
     @InjectRepository(CompanyNews)
     private companyNewsRepository: Repository<CompanyNews>,
+    private notificationService: NotificationsService,
   ) {}
 
   async registerCompany(
@@ -175,6 +178,23 @@ export class CompanyService {
     }
 
     const news = await this.companyNewsRepository.save({ ...dto, company });
+
+    const followers = await this.usersService.getRawFollowersForNotification(
+      company.owner.id,
+    );
+
+    if (followers.length > 0) {
+      await Promise.all(
+        followers.map((follower) =>
+          this.notificationService.createNotification({
+            user: follower,
+            type: NotificationType.COMPANY_NEWS,
+            companyName: company.name,
+          }),
+        ),
+      );
+    }
+
     return {
       id: news.id,
       title: news.title,
@@ -245,6 +265,22 @@ export class CompanyService {
     Object.assign(companyNews, updateData);
 
     const news = await this.companyNewsRepository.save(companyNews);
+
+    const followers = await this.usersService.getRawFollowersForNotification(
+      companyNews.company.owner.id,
+    );
+
+    if (followers.length > 0) {
+      await Promise.all(
+        followers.map((follower) =>
+          this.notificationService.createNotification({
+            user: follower,
+            type: NotificationType.COMPANY_NEWS,
+            companyName: companyNews.company.name,
+          }),
+        ),
+      );
+    }
 
     return {
       id: news.id,

@@ -446,4 +446,10 @@ export class UsersService {
     );
     return { events, total: events.length };
   }
+
+  async getRawFollowersForNotification(userId: number): Promise<User[]> {
+    return await this.usersRepository.find({
+      where: { following: { id: userId } },
+    });
+  }
 }

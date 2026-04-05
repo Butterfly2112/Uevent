@@ -1,4 +1,4 @@
-import { IsInt, IsOptional } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTicketDto {
@@ -21,6 +21,6 @@ export class CreateTicketDto {
     description: 'promocode ID(optional)',
   })
   @IsOptional()
-  @IsInt()
-  promoCodeId?: number;
+  @IsString()
+  promoCode?: string;
 }

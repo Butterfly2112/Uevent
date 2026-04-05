@@ -501,7 +501,7 @@ export const EventRegistrationForm: React.FC<{
         <span style={{fontSize:16}}>Notify me about new attendees</span>
       </div>
         <div style={{ marginBottom: 20 }}>
-          <h3 style={{ marginBottom: 10 }}>Promo Codes (max 5)</h3>
+          <h3 style={{ fontWeight:500, fontSize:17, marginBottom:2 }}>Promo Codes (max 5)</h3>
 
           {promoCodes.map((promo, index) => (
               <div
@@ -566,8 +566,8 @@ export const EventRegistrationForm: React.FC<{
                   onClick={addPromoCode}
                   style={{
                     marginTop: 8,
-                    background: '#e6f0ff',
-                    border: '1px dashed #6c63ff',
+                    background: '#ffe066',
+                    border: 'none',
                     padding: '8px 16px',
                     borderRadius: 8,
                     cursor: 'pointer',
