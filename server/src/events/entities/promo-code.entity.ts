@@ -12,7 +12,7 @@ export class PromoCode {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Event, (event) => event.promo_codes)
+  @ManyToOne(() => Event, (event) => event.promo_codes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
   event: Event;
 
