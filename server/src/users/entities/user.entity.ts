@@ -4,6 +4,7 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -76,4 +77,7 @@ export class User {
 
   @ManyToMany(() => User, (user) => user.following)
   followers: User[];
+
+  @ManyToMany(() => Event, (event) => event.event_followers)
+  following_events: Event[];
 }

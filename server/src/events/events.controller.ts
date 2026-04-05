@@ -71,6 +71,24 @@ export class EventController {
     return this.eventService.searchEvents(dto, user?.role);
   }
 
+  @Post(':id/follow')
+  @UseGuards(AuthGuard)
+  async followEvent(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.eventService.followTheEvent(param, req.user.id);
+    return {
+      message: 'Followed the event successfully',
+    };
+  }
+
+  @Post(':id/unfollow')
+  @UseGuards(AuthGuard)
+  async unfollowEvent(@Req() req: RequestWithUser, @Param('id') param: number) {
+    await this.eventService.unfollowTheEvent(param, req.user.id);
+    return {
+      message: 'Unfollowed the event successfully',
+    };
+  }
+
   @ApiOperation({
     summary: 'Create event',
   })
