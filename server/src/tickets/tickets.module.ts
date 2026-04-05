@@ -11,12 +11,14 @@ import { PromoCode } from 'src/events/entities/promo-code.entity';
 
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { PaymentModule } from '../payments/payment.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Ticket, User, Event, PromoCode]),
     forwardRef(() => NotificationsModule),
     PaymentModule,
+    AuthModule,
   ],
   providers: [TicketsService],
   controllers: [TicketsController],
