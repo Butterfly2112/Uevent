@@ -29,6 +29,8 @@ import {
   EventStatus,
   Event as EventEntity,
 } from 'src/events/entities/event.entity';
+import { toVisibleEvents } from 'src/common/mappers/event.mapper';
+import { EventResponse } from 'src/events/types/eventResponse.type';
 
 @Injectable()
 export class UsersService {
@@ -400,8 +402,24 @@ export class UsersService {
           .execute();
       }
     }
-    console.log(user);
-    console.log('UserId ', userId);
     await this.usersRepository.delete(userId);
+  }
+
+  async getUserFollowingEvents(
+    userId: number,
+  ): Promise<{ events: EventResponse[]; total: number }> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: { following_events: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    const events = toVisibleEvents(
+      user.following_events,
+      { owner: false, admin: false },
+      userId,
+      true,
+    );
+    return { events, total: events.length };
   }
 }

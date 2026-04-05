@@ -65,6 +65,9 @@ export class CompanyController {
     private uploadsService: UploadService,
   ) {}
 
+  @ApiOperation({
+    summary: 'Register company',
+  })
   @Post('register')
   @ApiBearerAuth()
   @UseGuards(AuthGuard)

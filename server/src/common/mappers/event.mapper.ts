@@ -92,6 +92,7 @@ export function toVisibleEvents(
   events: Event[],
   permissions: { owner: boolean; admin: boolean },
   currentUserId?: number | null,
+  isFollowing: boolean = false,
 ): EventResponse[] {
   const { owner, admin } = permissions;
   const now = new Date();
@@ -107,7 +108,7 @@ export function toVisibleEvents(
       const isAttendee =
         !!currentUserId &&
         (event.tickets ?? []).some((t) => t.user?.id === currentUserId);
-      return toEventResponse(event, { owner, admin, isAttendee });
+      return toEventResponse(event, { owner, admin, isAttendee }, isFollowing);
     });
 }
 
