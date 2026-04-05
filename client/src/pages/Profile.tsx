@@ -53,6 +53,7 @@ const Profile: React.FC = () => {
     start_date: string;
     end_date?: string;
     poster_url?: string;
+    status?: string;
   }
   const [userEvents, setUserEvents] = useState<Event[]>([]);
   const [userEventsLoading, setUserEventsLoading] = useState(false);
@@ -601,7 +602,12 @@ const Profile: React.FC = () => {
                   return (
                     <a key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', color: '#111', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: 180, minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8, transition: 'box-shadow 0.2s', marginBottom: 8 }}>
                       <img src={imgSrc} alt={ev.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>{ev.title}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, textAlign: 'center', color: '#111' }}>
+                        {ev.title}
+                        {ev.status === 'draft' && (
+                          <span style={{ color: 'red', marginLeft: 6 }}>(Draft)</span>
+                        )}
+                      </div>
                       <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.start_date).toLocaleDateString()}</div>
                       {ev.end_date && (
                         <div style={{ color: '#111', fontSize: 13, marginBottom: 0, textAlign: 'center' }}>{new Date(ev.end_date).toLocaleDateString()}</div>

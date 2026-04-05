@@ -1,3 +1,86 @@
+/* --- Adaptive styles for Profile page --- */
+@media (max-width: 900px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 0 12px 0;
+  }
+  .profile-avatar {
+    margin-left: 0;
+    margin-bottom: 12px;
+    width: 90px;
+    height: 90px;
+    font-size: 38px;
+  }
+  .profile-info {
+    width: 100%;
+    padding: 0 10px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-header {
+    padding: 10px 0 6px 0;
+    gap: 8px;
+  }
+  .profile-info {
+    font-size: 15px;
+    padding: 0 4px;
+  }
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+  }
+  .profile-events-row {
+    gap: 10px;
+    margin: 10px auto 8px auto;
+  }
+  .profile-events-section {
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 auto 12px auto !important;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px #e0e0e0;
+    padding: 0;
+  }
+  .profile-events-header {
+    font-size: 16px;
+    padding: 10px 8px 6px 8px;
+    gap: 8px;
+  }
+  .profile-events-list {
+    gap: 10px;
+    padding: 10px 0 8px 0;
+  }
+  .notifications-section {
+    padding: 4px;
+  }
+  .notifications-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  .notifications-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .notification-card {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .home-footer, .profile-footer {
+    font-size: 13px;
+    padding: 10px 0;
+  }
+  .footer-row {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    padding-left: 8px;
+  }
+}
 /* --- Events layout row for profile --- */
 .profile-events-row {
   display: flex;
