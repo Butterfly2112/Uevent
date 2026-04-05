@@ -29,12 +29,16 @@ const Participants: React.FC = () => {
     const { id } = useParams();
     const [users, setUsers] = useState<User[]>([]);
 
+    const [accessDenied, setAccessDenied] = useState(false);
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         fetchParticipants();
     }, [id]);
 
     const fetchParticipants = async () => {
         setLoading(true);
+        setAccessDenied(false);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '';
             const token = localStorage.getItem('access_token');
@@ -44,6 +48,12 @@ const Participants: React.FC = () => {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
             });
+
+            if (res.status === 403 || res.status === 401) {
+                setAccessDenied(true);
+                setUsers([]);
+                return;
+            }
 
             if (!res.ok) throw new Error('Failed to fetch participants');
 
@@ -129,7 +139,6 @@ const Participants: React.FC = () => {
     }, []);
     const cardsContainerRef = useRef<HTMLDivElement>(null);
 
-    const [loading, setLoading] = useState(false);
 
     return (
         <div style={{ minHeight: '100vh', background: '#fffef8' }}>
@@ -183,6 +192,21 @@ const Participants: React.FC = () => {
 
                 {loading ? (
                     <div style={{ textAlign: 'center' }}>Loading...</div>
+                ) : accessDenied ? (
+
+                    <div style={{
+                        textAlign: 'center',
+                        background: '#fffbe6',
+                        border: '1px solid #ffe066',
+                        borderRadius: 16,
+                        padding: '60px 20px',
+                        boxShadow: '0 2px 12px #ffe06655'
+                    }}>
+                        <h2 style={{ fontSize: 24, color: '#222', marginBottom: 8 }}>This list is private</h2>
+                        <p style={{ fontSize: 18, color: '#666', maxWidth: 400, margin: '0 auto' }}>
+                            The organizer has restricted access to the participants list. You must have a ticket to view who is attending.
+                        </p>
+                    </div>
                 ) : users.length === 0 ? (
                     <div style={{
                         textAlign: 'center',

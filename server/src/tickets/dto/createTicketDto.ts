@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTicketDto {
@@ -23,4 +23,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   promoCode?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  user_is_visible_to_public?: boolean;
 }

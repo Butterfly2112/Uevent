@@ -20,6 +20,9 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationType } from 'src/notifications/types/notifications-type.enum';
 import type { PaymentProvider } from 'src/payments/interfaces/payment-provider.interface';
 
+import * as path from 'path';
+import * as fs from 'fs';
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -47,6 +50,7 @@ export class TicketsService {
     userId: number;
     eventId: number;
     promoCode?: string;
+    user_is_visible_to_public?: boolean;
   }): Promise<Ticket> {
     const user = await this.userRepo.findOne({
       where: { id: dto.userId },
@@ -76,14 +80,24 @@ export class TicketsService {
     }
 
     const existing = await this.ticketRepo.findOne({
-      where: {
-        user: { id: dto.userId },
-        event: { id: dto.eventId },
-      },
+      where: [
+        {
+          user: { id: dto.userId },
+          event: { id: dto.eventId },
+          status: TicketStatus.PAID,
+        },
+        {
+          user: { id: dto.userId },
+          event: { id: dto.eventId },
+          status: TicketStatus.PENDING,
+        },
+      ],
     });
 
     if (existing) {
-      throw new BadRequestException('Ticket already exists');
+      throw new BadRequestException(
+        'You already have an active ticket for this event',
+      );
     }
 
     let finalPrice = Number(event.price);
@@ -106,6 +120,7 @@ export class TicketsService {
       promo_code: promo ?? undefined,
       price_paid: finalPrice,
       status: TicketStatus.PENDING,
+      user_is_visible_to_public: dto.user_is_visible_to_public ?? true,
     });
 
     return await this.ticketRepo.save(ticket);
@@ -257,7 +272,17 @@ export class TicketsService {
     return saved;
   }
 
-  async getEventParticipants(eventId: number): Promise<User[]> {
+  async getEventParticipants(
+    eventId: number,
+    currentUserId?: number,
+  ): Promise<User[]> {
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId },
+      relations: ['host'],
+    });
+
+    if (!event) throw new NotFoundException('Event not found');
+
     const tickets = await this.ticketRepo.find({
       where: {
         event: { id: eventId },
@@ -266,13 +291,26 @@ export class TicketsService {
       relations: ['user'],
     });
 
-    const uniqueUsers = new Map<number, User>();
+    const isOwner = currentUserId && event.host?.id === Number(currentUserId);
+
+    const participants: User[] = [];
+    const addedUserIds = new Set<number>();
 
     for (const ticket of tickets) {
-      uniqueUsers.set(ticket.user.id, ticket.user);
+      const user = ticket.user;
+
+      if (addedUserIds.has(user.id)) continue;
+
+      const isSelf = currentUserId && user.id === Number(currentUserId);
+      const isPubliclyVisible = ticket.user_is_visible_to_public === true;
+
+      if (isPubliclyVisible || isOwner || isSelf) {
+        participants.push(user);
+        addedUserIds.add(user.id);
+      }
     }
 
-    return Array.from(uniqueUsers.values());
+    return participants;
   }
 
   async validatePromoCode(eventId: number, code: string) {
@@ -318,38 +356,121 @@ export class TicketsService {
       `attachment; filename=ticket-${ticket.id}.pdf`,
     );
 
-    doc.on('error', (err) => {
-      console.error(err);
-      if (!res.headersSent) {
-        res.status(500).send('PDF error');
-      }
-    });
-
     doc.pipe(res);
 
-    // дизайн
-    doc.roundedRect(50, 100, 500, 280, 15).fillAndStroke('#fffde7', '#ffd43b');
+    try {
+      const regularFontPath = path.join(
+        process.cwd(),
+        'assets',
+        'fonts',
+        'Roboto-Regular.ttf',
+      );
 
-    doc.fontSize(22).fillColor('#222').text('EVENT TICKET', 50, 120, {
-      align: 'center',
-    });
+      if (fs.existsSync(regularFontPath)) {
+        doc.registerFont('Roboto', regularFontPath);
+        doc.font('Roboto');
+      } else {
+        doc.font('Helvetica');
+      }
 
-    doc.fontSize(16).fillColor('#000').text(ticket.event.title, 80, 240);
+      doc
+        .roundedRect(50, 100, 500, 260, 15)
+        .fillAndStroke('#fffde7', '#ffd43b');
 
-    doc.fontSize(14).fillColor('#555').text('Date:', 80, 270);
-    doc.text(new Date(ticket.event.start_date).toLocaleString(), 80, 290);
+      doc
+        .moveTo(380, 100)
+        .lineTo(380, 360)
+        .dash(5, { space: 5 })
+        .stroke('#ffd43b');
+      doc.undash();
 
-    doc.text('Attendee:', 80, 320);
-    doc.fontSize(16).fillColor('#000').text(ticket.user.login, 80, 340);
+      if (ticket.event.poster_url && ticket.event.poster_url !== 'default') {
+        try {
+          const localImagePath = path.join(
+            process.cwd(),
+            ticket.event.poster_url.replace(/^\//, ''),
+          );
 
-    doc.roundedRect(380, 220, 120, 80, 10).fillAndStroke('#ffe066', '#ffd43b');
+          if (fs.existsSync(localImagePath)) {
+            doc.image(localImagePath, 70, 120, {
+              fit: [120, 120],
+              align: 'center',
+              valign: 'center',
+            });
+          } else {
+            doc.rect(70, 120, 120, 120).fill('#ffe066');
+            doc
+              .fillColor('#bfa800')
+              .fontSize(12)
+              .text('No Image', 70, 175, { width: 120, align: 'center' });
+          }
+        } catch (e) {
+          console.warn('Could not download poster for PDF:', e);
+        }
+      } else {
+        doc.rect(70, 120, 120, 120).fill('#ffe066');
+        doc
+          .fillColor('#bfa800')
+          .fontSize(12)
+          .text('Uevent', 70, 175, { width: 120, align: 'center' });
+      }
 
-    doc.fillColor('#000').fontSize(20).text(`${ticket.price_paid}`, 380, 250, {
-      align: 'center',
-      width: 120,
-    });
+      doc.fontSize(20).fillColor('#222').text(ticket.event.title, 210, 120, {
+        width: 150,
+        height: 50,
+        ellipsis: true,
+      });
 
-    doc.end();
+      doc.fontSize(12).fillColor('#888').text('Date & Time:', 210, 170);
+      doc
+        .fontSize(14)
+        .fillColor('#000')
+        .text(new Date(ticket.event.start_date).toLocaleString(), 210, 185);
+
+      if (ticket.event.address) {
+        doc.fontSize(12).fillColor('#888').text('Location:', 210, 215);
+        doc
+          .fontSize(14)
+          .fillColor('#000')
+          .text(ticket.event.address, 210, 230, {
+            width: 160,
+          });
+      }
+
+      doc.fontSize(12).fillColor('#888').text('Attendee:', 70, 270);
+      doc.fontSize(16).fillColor('#222').text(ticket.user.login, 70, 285);
+
+      doc
+        .fontSize(14)
+        .fillColor('#888')
+        .text('PRICE', 390, 140, { width: 140, align: 'center' });
+      doc
+        .fontSize(24)
+        .fillColor('#000')
+        .text(`${ticket.price_paid} ₴`, 390, 160, {
+          width: 140,
+          align: 'center',
+        });
+
+      doc.roundedRect(415, 200, 90, 30, 8).fillAndStroke('#e6fcda', '#b2f28c');
+      doc
+        .fontSize(12)
+        .fillColor('#4ca61a')
+        .text('PAID', 415, 210, { width: 90, align: 'center' });
+
+      doc
+        .fontSize(10)
+        .fillColor('#aaa')
+        .text(`Ticket ID: ${ticket.id}`, 390, 330, {
+          width: 140,
+          align: 'center',
+        });
+
+      doc.end();
+    } catch (error) {
+      console.error('PDF error:', error);
+      doc.end();
+    }
   }
 
   async getUserTickets(userId: number): Promise<Ticket[]> {
@@ -363,5 +484,21 @@ export class TicketsService {
         id: 'DESC',
       },
     });
+  }
+
+  async getParticipantsForSystem(eventId: number): Promise<User[]> {
+    const tickets = await this.ticketRepo.find({
+      where: {
+        event: { id: eventId },
+        status: TicketStatus.PAID,
+      },
+      relations: ['user'],
+    });
+
+    const uniqueUsers = new Map<number, User>();
+    for (const ticket of tickets) {
+      uniqueUsers.set(ticket.user.id, ticket.user);
+    }
+    return Array.from(uniqueUsers.values());
   }
 }
