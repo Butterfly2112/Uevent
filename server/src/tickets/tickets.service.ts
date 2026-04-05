@@ -143,7 +143,6 @@ export class TicketsService {
       promoCode: ticket.promo_code?.code,
     };
 
-
     await this.notificationsService.createNotification({
       user: ticket.user,
       type: NotificationType.TICKET_PURCHASE,
@@ -157,6 +156,19 @@ export class TicketsService {
       event: ticket.event,
       ticket: ticketData,
     });
+
+    const eventWithHost = await this.eventRepo.findOne({
+      where: { id: ticket.event.id },
+      relations: { host: true },
+    });
+    if (eventWithHost?.notificate_owner && eventWithHost.host) {
+      await this.notificationsService.createNotification({
+        user: eventWithHost.host,
+        type: NotificationType.EVENT_NEW_PARTICIPANT,
+        event: ticket.event,
+        userName: ticket.user.username,
+      });
+    }
 
     return saved;
   }

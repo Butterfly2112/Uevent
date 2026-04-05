@@ -9,11 +9,13 @@ import { UploadModule } from 'src/upload/upload.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
     CompaniesModule,
     UploadModule,
+    UsersModule,
     AuthModule,
     JwtModule.register({}),
     forwardRef(() => NotificationsModule),

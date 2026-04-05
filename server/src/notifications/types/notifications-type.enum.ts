@@ -9,6 +9,7 @@ export enum NotificationType {
   EVENT_REMINDER = 'event_reminder',
   PAYMENT_SUCCESS = 'payment_success',
   REFUND_SUCCESS = 'refund_success',
+  EVENT_CANCELED = 'event_canceled',
 }
 
 export enum EmailStatus {

@@ -7,6 +7,7 @@ import { User } from 'src/users/entities/user.entity';
 import { NotificationResponse } from './types/notificationsResponse.type';
 import { EmailService } from 'src/email/email.service';
 import { Event } from 'src/events/entities/event.entity';
+import { Company } from 'src/companies/entities/company.entity';
 
 @Injectable()
 export class NotificationsService {
@@ -30,6 +31,8 @@ export class NotificationsService {
     [NotificationType.EVENT_REMINDER]: { email: true },
     [NotificationType.PAYMENT_SUCCESS]: { email: true },
     [NotificationType.REFUND_SUCCESS]: { email: true },
+
+    [NotificationType.EVENT_CANCELED]: { email: false },
   };
 
   // Створити сповіщення
@@ -37,7 +40,9 @@ export class NotificationsService {
     user: User;
     type: NotificationType;
     event?: Event;
+    companyName?: string;
     ticket?: any;
+    userName?: string;
   }): Promise<Notification> {
     const content = this.buildNotificationContent(data);
 
@@ -126,6 +131,12 @@ export class NotificationsService {
         return {
           title: 'New participant',
           message: `${data.userName} joined your event "${data.event?.title}"`,
+        };
+
+      case NotificationType.EVENT_CANCELED:
+        return {
+          title: 'Canceled event',
+          message: `An event "${data.event?.title}" has been canceled`,
         };
 
       default:
