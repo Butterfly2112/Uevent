@@ -285,7 +285,9 @@ export const EventRegistrationForm: React.FC<{
             &#10006;
           </button>
         )}
-      <h2 style={{margin: 0, fontSize: 28, color: '#222', marginBottom: 18}}>Register New Event</h2>
+        <h2 style={{margin: 0, fontSize: 28, color: '#222', marginBottom: 18}}>
+          {initialData ? 'Update Event' : 'Register New Event'}
+        </h2>
       {error && <div style={{ color: 'red', fontSize: 17, marginBottom: 10 }}>{error}</div>}
       {/* Title */}
       <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom: 12}}>
@@ -580,7 +582,10 @@ export const EventRegistrationForm: React.FC<{
       {/* Submit button */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10 }}>
         <button type="submit" disabled={loading || !form.title.trim() || !form.description.trim()} style={{ background: '#ffe066', border: 'none', borderRadius: 8, padding: '12px 36px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontSize: 18 }}>
-          {loading ? 'Registering...' : 'Register Event'}
+          {loading
+              ? (initialData ? 'Updating...' : 'Registering...')
+              : (initialData ? 'Update Event' : 'Register Event')
+          }
         </button>
       </div>
       </form>

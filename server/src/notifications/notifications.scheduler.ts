@@ -20,36 +20,33 @@ export class NotificationsScheduler {
   async sendEventReminders() {
     const now = new Date();
 
-    const tomorrowStart = new Date(now);
-    tomorrowStart.setDate(now.getDate() + 1);
-    tomorrowStart.setHours(0, 0, 0, 0);
-
-    const tomorrowEnd = new Date(tomorrowStart);
-    tomorrowEnd.setHours(23, 59, 59, 999);
+    const exactly24HoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const events = await this.eventService.getEventsForReminder(
-      tomorrowStart,
-      tomorrowEnd,
+      now,
+      exactly24HoursFromNow,
     );
 
     for (const event of events) {
       const users = await this.getEventParticipants(event.id);
 
-      await Promise.all(
-        users.map((user) =>
-          this.notificationsService.createNotification({
-            user,
-            type: NotificationType.EVENT_REMINDER,
-            event,
-          }),
-        ),
-      );
+      if (users.length > 0) {
+        await Promise.all(
+          users.map((user) =>
+            this.notificationsService.createNotification({
+              user,
+              type: NotificationType.EVENT_REMINDER,
+              event,
+            }),
+          ),
+        );
+      }
 
       await this.eventService.markReminderSent(event.id);
     }
   }
 
   private async getEventParticipants(eventId: number) {
-    return this.ticketsService.getEventParticipants(eventId);
+    return this.ticketsService.getParticipantsForSystem(eventId);
   }
 }
