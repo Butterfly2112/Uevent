@@ -45,7 +45,6 @@ A fullstack platform that connects people through events — find concerts, conf
 | **PDFKit** | PDF ticket generation |
 | **Swagger** | API documentation |
 | **Multer** | File uploads |
-| **node-cron** | Scheduled reminders |
 
 ### Frontend
  
